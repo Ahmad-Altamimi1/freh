@@ -112,12 +112,12 @@ export function FileUploader(props: FileUploaderProps) {
   const onDrop = React.useCallback(
     (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
       if (!multiple && maxFiles === 1 && acceptedFiles.length > 1) {
-        toast.error('Cannot upload more than 1 file at a time');
+        toast.error('لا يمكن رفع أكثر من ملف واحد في المرة.');
         return;
       }
 
       if ((files?.length ?? 0) + acceptedFiles.length > maxFiles) {
-        toast.error(`Cannot upload more than ${maxFiles} files`);
+        toast.error(`لا يمكن رفع أكثر من ${maxFiles} ملفات.`);
         return;
       }
 
@@ -133,7 +133,7 @@ export function FileUploader(props: FileUploaderProps) {
 
       if (rejectedFiles.length > 0) {
         rejectedFiles.forEach(({ file }) => {
-          toast.error(`File ${file.name} was rejected`);
+          toast.error(`تم رفض الملف ${file.name}`);
         });
       }
 
@@ -204,7 +204,7 @@ export function FileUploader(props: FileUploaderProps) {
                 <div className='rounded-full border border-dashed p-3'>
                   <Icons.upload className='text-muted-foreground size-7' aria-hidden='true' />
                 </div>
-                <p className='text-muted-foreground font-medium'>Drop the files here</p>
+                <p className='text-muted-foreground font-medium'>أفلت الملفات هنا</p>
               </div>
             ) : (
               <div className='flex flex-col items-center justify-center gap-4 sm:px-5'>
@@ -213,14 +213,12 @@ export function FileUploader(props: FileUploaderProps) {
                 </div>
                 <div className='space-y-px'>
                   <p className='text-muted-foreground font-medium'>
-                    Drag {`'n'`} drop files here, or click to select files
+                    اسحب الملفات إلى هنا، أو اضغط للاختيار
                   </p>
                   <p className='text-muted-foreground/70 text-sm'>
-                    You can upload
                     {maxFiles > 1
-                      ? ` ${maxFiles === Infinity ? 'multiple' : maxFiles}
-                      files (up to ${formatBytes(maxSize)} each)`
-                      : ` a file with ${formatBytes(maxSize)}`}
+                      ? `يمكن رفع ${maxFiles === Infinity ? 'عدة' : maxFiles} ملفات، بحد أقصى ${formatBytes(maxSize)} لكل ملف`
+                      : `الحد الأقصى لحجم الملف ${formatBytes(maxSize)}`}
                   </p>
                 </div>
               </div>
@@ -254,8 +252,8 @@ interface FileCardProps {
 
 function FileCard({ file, progress, onRemove }: FileCardProps) {
   return (
-    <div className='relative flex items-center space-x-4'>
-      <div className='flex flex-1 space-x-4'>
+    <div className='relative flex items-center gap-4'>
+      <div className='flex flex-1 gap-4'>
         {isFileWithPreview(file) ? (
           <Image
             src={file.preview}
@@ -268,7 +266,9 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
         ) : null}
         <div className='flex w-full flex-col gap-2'>
           <div className='space-y-px'>
-            <p className='text-foreground/80 line-clamp-1 text-sm font-medium'>{file.name}</p>
+            <p dir='ltr' className='text-foreground/80 line-clamp-1 text-start text-sm font-medium'>
+              {file.name}
+            </p>
             <p className='text-muted-foreground text-xs'>{formatBytes(file.size)}</p>
           </div>
           {progress ? <Progress value={progress} /> : null}
@@ -284,7 +284,7 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
           className='size-8 rounded-full'
         >
           <Icons.close className='text-muted-foreground' />
-          <span className='sr-only'>Remove file</span>
+          <span className='sr-only'>إزالة الملف</span>
         </Button>
       </div>
     </div>

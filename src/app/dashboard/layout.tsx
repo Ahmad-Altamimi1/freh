@@ -32,12 +32,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SessionProvider user={sessionUser}>
       <KBar>
         <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar user={sessionUser} />
+          {/* RTL: primary navigation belongs on the leading (right) edge, and
+              the contextual info panel on the opposite one. */}
+          <AppSidebar user={sessionUser} side='right' />
           <SidebarInset>
             <Header />
             <InfobarProvider defaultOpen={false}>
               {children}
-              <InfoSidebar side='right' />
+              <InfoSidebar side='left' />
             </InfobarProvider>
           </SidebarInset>
         </SidebarProvider>

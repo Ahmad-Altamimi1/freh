@@ -51,9 +51,9 @@ function SheetContent({
         className={cn(
           'bg-background fixed z-50 flex flex-col gap-4 px-6 py-6 shadow-lg transition ease-in-out data-closed:duration-300 data-open:duration-500',
           side === 'right' &&
-            'data-starting-style:translate-x-full data-ending-style:translate-x-full inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
+            'data-starting-style:translate-x-full data-ending-style:translate-x-full inset-y-0 right-0 h-full w-3/4 border-s sm:max-w-sm',
           side === 'left' &&
-            'data-starting-style:-translate-x-full data-ending-style:-translate-x-full inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
+            'data-starting-style:-translate-x-full data-ending-style:-translate-x-full inset-y-0 left-0 h-full w-3/4 border-e sm:max-w-sm',
           side === 'top' &&
             'data-starting-style:-translate-y-full data-ending-style:-translate-y-full inset-x-0 top-0 h-auto border-b',
           side === 'bottom' &&
@@ -63,7 +63,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className='ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none'>
+        <SheetPrimitive.Close className='ring-offset-background focus:ring-ring absolute top-4 end-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none'>
           <Icons.close className='size-4' />
           <span className='sr-only'>Close</span>
         </SheetPrimitive.Close>

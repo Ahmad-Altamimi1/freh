@@ -1,7 +1,18 @@
 import { defineConfig } from 'drizzle-kit';
 
 /**
- * drizzle-kit runs outside Next.js, so it reads .env.local itself.
+ * drizzle-kit runs outside Next.js, so nothing has loaded .env.local for us —
+ * Next.js is what normally does that. `process.loadEnvFile` is built into Node
+ * (>= 20.12), so this needs no dependency. Values already present in the real
+ * environment win, which is what CI wants.
+ */
+try {
+  process.loadEnvFile('.env.local');
+} catch {
+  // No .env.local — fall through to the ambient environment.
+}
+
+/**
  * Use the DIRECT (session-mode, port 5432) connection string here — migrations
  * issue DDL and cannot run through the transaction-mode pooler on port 6543.
  */

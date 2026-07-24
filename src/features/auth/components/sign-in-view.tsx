@@ -34,28 +34,26 @@ export default function SignInViewPage({ redirectTo }: { redirectTo?: string }) 
       <div className='flex h-full items-center justify-center p-4 lg:p-8'>
         <div className='flex w-full max-w-sm flex-col justify-center space-y-6'>
           <div className='flex flex-col space-y-2 text-center'>
-            <h1 className='text-2xl font-semibold tracking-tight'>Sign in</h1>
-            <p className='text-muted-foreground text-sm'>
-              Enter your credentials to access the dashboard
-            </p>
+            <h1 className='text-2xl font-semibold tracking-tight'>تسجيل الدخول</h1>
+            <p className='text-muted-foreground text-sm'>أدخل بياناتك للوصول إلى لوحة التحكم</p>
           </div>
 
           <SignInForm redirectTo={redirectTo} />
 
           <p className='text-muted-foreground px-8 text-center text-sm'>
-            By continuing, you agree to our{' '}
+            بالمتابعة، أنت توافق على{' '}
             <Link
               href='/terms-of-service'
               className='hover:text-primary underline underline-offset-4'
             >
-              Terms of Service
+              شروط الخدمة
             </Link>{' '}
-            and{' '}
+            و{' '}
             <Link
               href='/privacy-policy'
               className='hover:text-primary underline underline-offset-4'
             >
-              Privacy Policy
+              سياسة الخصوصية
             </Link>
             .
           </p>

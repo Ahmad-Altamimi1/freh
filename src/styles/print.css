@@ -1,0 +1,112 @@
+/**
+ * Print rules for report pages.
+ *
+ * The dashboard is an application shell: a sidebar, a header, toolbars, and a
+ * scroll container that clips its content to the viewport. Printed as-is, a
+ * report comes out as one page of navigation chrome with the content cut off.
+ * These rules strip the shell and let the document flow.
+ *
+ * Mark anything that is navigation rather than content with `print:hidden`, and
+ * anything that should not be split across pages with `break-inside-avoid`.
+ */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* Force the light palette. The dark theme prints as heavy blocks of ink and
+     leaves low-contrast text on white paper. */
+  :root,
+  .dark {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --muted: #f4f4f5;
+    --muted-foreground: #3f3f46;
+    --border: #d4d4d8;
+    --input: #d4d4d8;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    /* The shell constrains height to the viewport and scrolls internally; both
+       must be released or only the first screenful reaches the printer. */
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* The application shell. */
+  [data-slot='sidebar-wrapper'] > [data-slot='sidebar'],
+  [data-slot='sidebar-container'],
+  [data-slot='sidebar-gap'],
+  header,
+  [role='toolbar'] {
+    display: none !important;
+  }
+
+  /* Radix/Base UI portals render overlays at the end of <body>. */
+  [data-slot='popover-positioner'],
+  [data-slot='dialog-backdrop'],
+  [data-slot='select-positioner'],
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  /* Undo the inset/rounded shell so content uses the full page width. */
+  [data-slot='sidebar-inset'] {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  main,
+  [data-slot='sidebar-inset'] {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* ScrollArea clips to a fixed height; let it grow instead. */
+  [data-slot='scroll-area-viewport'],
+  [data-slot='scroll-area'] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-slot='card'] {
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  /* Recharts draws into an SVG sized by a ResizeObserver; without an explicit
+     width the print layout can hand it zero and the chart disappears. */
+  .recharts-wrapper,
+  .recharts-surface {
+    width: 100% !important;
+  }
+
+  table {
+    break-inside: auto;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+}

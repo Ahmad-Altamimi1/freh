@@ -156,10 +156,10 @@ export function DataTableSliderFilter<TData>({ column, title }: DataTableSliderF
                 max={max}
                 value={range[0]?.toString()}
                 onChange={onFromInputChange}
-                className={cn('h-8 w-24', unit && 'pr-8')}
+                className={cn('h-8 w-24', unit && 'pe-8')}
               />
               {unit && (
-                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-e-md px-2 text-sm'>
                   {unit}
                 </span>
               )}
@@ -180,10 +180,10 @@ export function DataTableSliderFilter<TData>({ column, title }: DataTableSliderF
                 max={max}
                 value={range[1]?.toString()}
                 onChange={onToInputChange}
-                className={cn('h-8 w-24', unit && 'pr-8')}
+                className={cn('h-8 w-24', unit && 'pe-8')}
               />
               {unit && (
-                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-e-md px-2 text-sm'>
                   {unit}
                 </span>
               )}

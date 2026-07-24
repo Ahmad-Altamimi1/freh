@@ -27,6 +27,27 @@ import { NavGroup } from '@/types';
  */
 export const navGroups: NavGroup[] = [
   {
+    label: 'السجل',
+    items: [
+      {
+        title: 'الجمعيات',
+        url: '/dashboard/organizations',
+        icon: 'building',
+        isActive: false,
+        shortcut: ['o', 'o'],
+        items: []
+      },
+      {
+        title: 'التقارير',
+        url: '/dashboard/organizations/reports',
+        icon: 'report',
+        isActive: false,
+        shortcut: ['r', 'r'],
+        items: []
+      }
+    ]
+  },
+  {
     label: 'Overview',
     items: [
       {

@@ -34,22 +34,22 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
       <PopoverTrigger
         render={
           <Button
-            aria-label='Toggle columns'
+            aria-label='إظهار/إخفاء الأعمدة'
             variant='outline'
             size='sm'
-            className='ml-auto hidden h-8 lg:flex'
+            className='ms-auto hidden h-8 lg:flex'
           />
         }
       >
         <Icons.adjustments />
-        View
-        <Icons.chevronsUpDown className='ml-auto opacity-50' />
+        الأعمدة
+        <Icons.chevronsUpDown className='ms-auto opacity-50' />
       </PopoverTrigger>
       <PopoverContent align='end' className='w-44 p-0'>
         <Command>
-          <CommandInput placeholder='Search columns...' />
+          <CommandInput placeholder='ابحث عن عمود…' />
           <CommandList>
-            <CommandEmpty>No columns found.</CommandEmpty>
+            <CommandEmpty>لا توجد أعمدة.</CommandEmpty>
             <CommandGroup>
               {columns.map((column) => (
                 <CommandItem
@@ -59,7 +59,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                   <span className='truncate'>{column.columnDef.meta?.label ?? column.id}</span>
                   <Icons.check
                     className={cn(
-                      'ml-auto size-4 shrink-0',
+                      'ms-auto size-4 shrink-0',
                       column.getIsVisible() ? 'opacity-100' : 'opacity-0'
                     )}
                   />

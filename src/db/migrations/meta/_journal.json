@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784914603130,
+      "tag": "0000_spooky_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784914603131,
+      "tag": "0001_organizations_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784915337354,
+      "tag": "0002_cuddly_gateway",
+      "breakpoints": true
+    }
+  ]
+}

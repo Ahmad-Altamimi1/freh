@@ -47,7 +47,7 @@ export function NavMain({
               >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
-                <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
+                <Icons.chevronRight className='ms-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <SidebarMenuSub>

@@ -34,27 +34,36 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
           </Alert>
         )}
 
+        {/*
+          `dir='ltr'` on both fields: an email address and a password are
+          left-to-right sequences. Inheriting the page's RTL direction moves the
+          caret to the right edge and lets the bidi algorithm reorder what the
+          user typed — the text is still stored correctly, but it does not read
+          back the way it was entered.
+        */}
         <FormTextField
           name='email'
-          label='Email'
+          label='البريد الإلكتروني'
           required
           type='email'
+          dir='ltr'
           autoComplete='email'
           placeholder='you@example.com'
-          validators={{ onBlur: z.email('Please enter a valid email address') }}
+          validators={{ onBlur: z.email('يرجى إدخال بريد إلكتروني صالح') }}
         />
 
         <FormTextField
           name='password'
-          label='Password'
+          label='كلمة المرور'
           required
           type='password'
+          dir='ltr'
           autoComplete='current-password'
           placeholder='••••••••'
-          validators={{ onBlur: z.string().min(1, 'Password is required') }}
+          validators={{ onBlur: z.string().min(1, 'كلمة المرور مطلوبة') }}
         />
 
-        <form.SubmitButton className='w-full'>Sign in</form.SubmitButton>
+        <form.SubmitButton className='w-full'>تسجيل الدخول</form.SubmitButton>
       </form.Form>
     </form.AppForm>
   );

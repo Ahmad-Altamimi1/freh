@@ -31,16 +31,24 @@ import { useFilteredNavGroups } from '@/hooks/use-nav';
 import type { SessionUser } from '@/lib/auth/session';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import type * as React from 'react';
 import { Icons } from '../icons';
 
-export default function AppSidebar({ user }: { user: SessionUser }) {
+export default function AppSidebar({
+  user,
+  side
+}: {
+  user: SessionUser;
+  /** Which edge the sidebar docks to. Defaults to the shadcn default of 'left'. */
+  side?: React.ComponentProps<typeof Sidebar>['side'];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
   const { signOut, isPending: isSigningOut } = useSignOut();
 
   return (
-    <Sidebar collapsible='icon'>
+    <Sidebar collapsible='icon' side={side}>
       <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -51,7 +59,7 @@ export default function AppSidebar({ user }: { user: SessionUser }) {
               <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg'>
                 <Icons.logo className='size-4' />
               </div>
-              <div className='grid flex-1 text-left text-sm leading-tight'>
+              <div className='grid flex-1 text-start text-sm leading-tight'>
                 <span className='truncate font-semibold'>Dashboard</span>
                 <span className='text-muted-foreground truncate text-xs'>Admin</span>
               </div>
@@ -83,7 +91,7 @@ export default function AppSidebar({ user }: { user: SessionUser }) {
                     >
                       {item.icon && <Icon />}
                       <span>{item.title}</span>
-                      <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
+                      <Icons.chevronRight className='ms-auto transition-transform duration-200 group-data-panel-open/collapsible:rotate-90' />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
@@ -130,7 +138,7 @@ export default function AppSidebar({ user }: { user: SessionUser }) {
                 }
               >
                 <UserAvatarProfile className='h-8 w-8 rounded-lg' showInfo user={user} />
-                <Icons.chevronsDown className='ml-auto size-4' />
+                <Icons.chevronsDown className='ms-auto size-4' />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className='w-(--anchor-width) min-w-56 rounded-lg'
@@ -149,13 +157,13 @@ export default function AppSidebar({ user }: { user: SessionUser }) {
 
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
-                    <Icons.notification className='mr-2 h-4 w-4' />
+                    <Icons.notification className='me-2 h-4 w-4' />
                     Notifications
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem disabled={isSigningOut} onClick={signOut}>
-                  <Icons.logout className='mr-2 h-4 w-4' />
+                  <Icons.logout className='me-2 h-4 w-4' />
                   {isSigningOut ? 'Signing out…' : 'Sign out'}
                 </DropdownMenuItem>
               </DropdownMenuContent>

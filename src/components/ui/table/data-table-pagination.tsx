@@ -18,10 +18,13 @@ interface DataTablePaginationProps<TData> extends React.ComponentProps<'div'> {
 
 export function DataTablePagination<TData>({
   table,
-  pageSizeOptions = [10, 20, 30, 40, 50],
+  pageSizeOptions = [10, 15, 20, 30, 40, 50],
   className,
   ...props
 }: DataTablePaginationProps<TData>) {
+  const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const totalCount = table.getFilteredRowModel().rows.length;
+
   return (
     <div
       className={cn(
@@ -31,22 +34,21 @@ export function DataTablePagination<TData>({
       {...props}
     >
       <div className='text-muted-foreground text-sm whitespace-nowrap'>
-        {table.getFilteredSelectedRowModel().rows.length > 0 ? (
+        {selectedCount > 0 ? (
           <>
-            {table.getFilteredSelectedRowModel().rows.length} of{' '}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+            تم تحديد {selectedCount} من {totalCount}
           </>
         ) : (
-          <>{table.getFilteredRowModel().rows.length} row(s) total.</>
+          <>{totalCount} صف في هذه الصفحة</>
         )}
       </div>
       <div className='flex items-center gap-2 sm:gap-6 lg:gap-8'>
-        <div className='hidden items-center space-x-2 sm:flex'>
-          <p className='text-sm font-medium whitespace-nowrap'>Rows per page</p>
+        <div className='hidden items-center gap-2 sm:flex'>
+          <p className='text-sm font-medium whitespace-nowrap'>صفوف لكل صفحة</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
             onValueChange={(value) => {
-              table.setPageSize(Number(value));
+              if (value) table.setPageSize(Number(value));
             }}
           >
             <SelectTrigger className='h-8 w-[4.5rem] [&[data-size]]:h-8'>
@@ -62,48 +64,54 @@ export function DataTablePagination<TData>({
           </Select>
         </div>
         <div className='flex items-center justify-center text-sm font-medium whitespace-nowrap'>
-          Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          صفحة {table.getState().pagination.pageIndex + 1} من {Math.max(1, table.getPageCount())}
         </div>
-        <div className='flex items-center space-x-1'>
+        {/*
+          The chevrons are rotated rather than swapped. "Previous" must point
+          toward the start of the reading direction, which on an RTL page is the
+          right — so the same icon means the same thing in both directions and
+          there is no pair of components to keep in sync.
+        */}
+        <div className='flex items-center gap-1'>
           <Button
-            aria-label='Go to first page'
+            aria-label='الانتقال إلى الصفحة الأولى'
             variant='outline'
             size='icon'
             className='hidden size-8 lg:flex'
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
-            <Icons.chevronsLeft />
+            <Icons.chevronsLeft className='rtl:rotate-180' />
           </Button>
           <Button
-            aria-label='Go to previous page'
+            aria-label='الصفحة السابقة'
             variant='outline'
             size='icon'
             className='size-8'
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <Icons.chevronLeft />
+            <Icons.chevronLeft className='rtl:rotate-180' />
           </Button>
           <Button
-            aria-label='Go to next page'
+            aria-label='الصفحة التالية'
             variant='outline'
             size='icon'
             className='size-8'
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <Icons.chevronRight />
+            <Icons.chevronRight className='rtl:rotate-180' />
           </Button>
           <Button
-            aria-label='Go to last page'
+            aria-label='الانتقال إلى الصفحة الأخيرة'
             variant='outline'
             size='icon'
             className='hidden size-8 lg:flex'
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
           >
-            <Icons.chevronsRight />
+            <Icons.chevronsRight className='rtl:rotate-180' />
           </Button>
         </div>
       </div>

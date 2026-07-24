@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -64,16 +65,25 @@ export function CellAction({ data }: CellActionProps) {
           <Icons.ellipsis className='size-4' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
-          <DropdownMenuLabel>{ORGANIZATION_LABELS.actions.rowActions}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <Icons.edit className='size-4' />
-            {ORGANIZATION_LABELS.actions.edit}
-          </DropdownMenuItem>
-          <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
-            <Icons.trash className='size-4' />
-            {ORGANIZATION_LABELS.actions.delete}
-          </DropdownMenuItem>
+          {/*
+            The label and the items sit inside a group. `DropdownMenuLabel`
+            renders Base UI's `Menu.GroupLabel`, which reads a context only
+            `Menu.Group` (`DropdownMenuGroup`) provides — placed loose in the
+            content it throws "MenuGroupContext is missing" the moment the menu
+            opens. This mirrors the users-table cell action.
+          */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{ORGANIZATION_LABELS.actions.rowActions}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <Icons.edit className='size-4' />
+              {ORGANIZATION_LABELS.actions.edit}
+            </DropdownMenuItem>
+            <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
+              <Icons.trash className='size-4' />
+              {ORGANIZATION_LABELS.actions.delete}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </>

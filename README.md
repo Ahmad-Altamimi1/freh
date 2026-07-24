@@ -9,7 +9,7 @@
 <br />
 
 <div align="center">
-  <img src="/public/shadcn-dashboard.png" alt="Shadcn Dashboard Cover" style="max-width: 100%; border-radius: 8px;" />
+  <img src="/public/logo-mark.png" alt="وزارة الثقافة" style="max-width: 320px; border-radius: 8px;" />
 </div>
 
 <br />

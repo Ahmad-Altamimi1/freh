@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { AppLogo, APP_NAME, APP_TAGLINE } from '@/components/layout/app-logo';
 import { InteractiveGridPattern } from './interactive-grid';
 import { SignInForm } from './sign-in-form';
 
@@ -8,20 +9,12 @@ export default function SignInViewPage({ redirectTo }: { redirectTo?: string }) 
     <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
       <div className='relative hidden h-full flex-col p-10 lg:flex dark:border-r'>
         <div className='bg-sidebar absolute inset-0' />
-        <div className='text-sidebar-foreground relative z-20 flex items-center text-lg font-medium'>
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 24 24'
-            fill='none'
-            stroke='currentColor'
-            strokeWidth='2'
-            strokeLinecap='round'
-            strokeLinejoin='round'
-            className='mr-2 h-6 w-6'
-          >
-            <path d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3' />
-          </svg>
-          Logo
+        <div className='text-sidebar-foreground relative z-20 flex items-center gap-3'>
+          <AppLogo className='size-10' />
+          <div className='grid leading-tight'>
+            <span className='text-lg font-medium'>{APP_NAME}</span>
+            <span className='text-sidebar-foreground/70 text-sm'>{APP_TAGLINE}</span>
+          </div>
         </div>
         <InteractiveGridPattern
           className={cn(

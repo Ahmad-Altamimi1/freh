@@ -24,6 +24,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail
 } from '@/components/ui/sidebar';
+import { AppLogo, APP_NAME, APP_TAGLINE } from '@/components/layout/app-logo';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navGroups } from '@/config/nav-config';
 import { useSignOut } from '@/features/auth/components/use-sign-out';
@@ -54,14 +55,12 @@ export default function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               size='lg'
-              render={<Link href='/dashboard/overview' aria-label='Go to dashboard' />}
+              render={<Link href='/dashboard/overview' aria-label={APP_NAME} />}
             >
-              <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg'>
-                <Icons.logo className='size-4' />
-              </div>
+              <AppLogo className='size-8' />
               <div className='grid flex-1 text-start text-sm leading-tight'>
-                <span className='truncate font-semibold'>Dashboard</span>
-                <span className='text-muted-foreground truncate text-xs'>Admin</span>
+                <span className='truncate font-semibold'>{APP_NAME}</span>
+                <span className='text-muted-foreground truncate text-xs'>{APP_TAGLINE}</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

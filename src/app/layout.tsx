@@ -15,8 +15,13 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  // `template` so page titles read "الجمعيات | وزارة الثقافة" without every
+  // page having to repeat the suffix.
+  title: {
+    default: 'وزارة الثقافة — سجل الجمعيات الثقافية',
+    template: '%s | وزارة الثقافة'
+  },
+  description: 'سجل الجمعيات الثقافية في محافظة إربد — بحث وتصفية وتقارير.'
 };
 
 export const viewport: Viewport = {

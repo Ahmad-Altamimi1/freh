@@ -51,16 +51,16 @@ export function NavProjects({
                 align={isMobile ? 'end' : 'start'}
               >
                 <DropdownMenuItem>
-                  <Icons.workspace className='text-muted-foreground mr-2 h-4 w-4' />
+                  <Icons.workspace className='text-muted-foreground me-2 h-4 w-4' />
                   <span>View Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Icons.share className='text-muted-foreground mr-2 h-4 w-4' />
+                  <Icons.share className='text-muted-foreground me-2 h-4 w-4' />
                   <span>Share Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <Icons.trash className='text-muted-foreground mr-2 h-4 w-4' />
+                  <Icons.trash className='text-muted-foreground me-2 h-4 w-4' />
                   <span>Delete Project</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

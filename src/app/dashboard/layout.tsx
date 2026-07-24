@@ -10,8 +10,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn Dashboard Starter',
-  description: 'Basic dashboard with Next.js and Shadcn',
+  title: 'لوحة التحكم',
+  description: 'سجل الجمعيات الثقافية في محافظة إربد.',
   robots: {
     index: false,
     follow: false
@@ -32,12 +32,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SessionProvider user={sessionUser}>
       <KBar>
         <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar user={sessionUser} />
+          {/* RTL: primary navigation belongs on the leading (right) edge, and
+              the contextual info panel on the opposite one. */}
+          <AppSidebar user={sessionUser} side='right' />
           <SidebarInset>
             <Header />
             <InfobarProvider defaultOpen={false}>
               {children}
-              <InfoSidebar side='right' />
+              <InfoSidebar side='left' />
             </InfobarProvider>
           </SidebarInset>
         </SidebarProvider>

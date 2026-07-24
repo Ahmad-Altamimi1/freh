@@ -101,7 +101,7 @@ The project follows a feature-based folder structure designed for scalability in
 │   ├── ui/                # shadcn/ui components (50+ components)
 │   ├── layout/            # Layout components (sidebar, header, etc.)
 │   ├── forms/             # Form field wrappers
-│   ├── themes/            # Theme system components
+│   ├── themes/            # Theme config, light/dark provider and toggle
 │   ├── kbar/              # Command+K search bar
 │   ├── icons.tsx          # Icon registry
 │   └── ...
@@ -157,7 +157,7 @@ The project follows a feature-based folder structure designed for scalability in
 └── styles/                # Global styles
     ├── globals.css        # Tailwind imports + view transitions
     ├── theme.css          # Theme imports
-    └── themes/            # Individual theme files
+    └── themes/            # Theme token file (vercel.css)
 
 /docs                      # Documentation
 │   ├── supabase-setup.md  # Supabase Auth, database and storage setup
@@ -280,33 +280,23 @@ NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
 
 ## Theming System
 
-The project uses a sophisticated multi-theme system with 10 built-in themes:
+The app ships a single theme, `vercel`, set statically on `<html>` as `data-theme`. There is no theme picker.
 
-- `vercel` (default)
-- `claude`
-- `neobrutualism`
-- `supabase`
-- `mono`
-- `notebook`
-- `light-green`
-- `zen`
-- `astro-vista`
-- `whatsapp`
+Light/dark is a separate axis owned by next-themes (a `class` on the same element) and is still switchable from the header toggle and Cmd+K.
 
 ### Theme Files
 
-- CSS files: `src/styles/themes/{theme-name}.css`
-- Theme registry: `src/components/themes/theme.config.ts`
+- CSS tokens: `src/styles/themes/vercel.css` (OKLCH, scoped to `[data-theme='vercel']`)
+- CSS import: `src/styles/theme.css`
+- Active theme name: `src/components/themes/theme.config.ts` (`DEFAULT_THEME`)
 - Font config: `src/components/themes/font.config.ts`
-- Active theme provider: `src/components/themes/active-theme.tsx`
 
-### Adding a New Theme
+### Changing the Theme
 
-1. Create `src/styles/themes/your-theme.css` with `[data-theme='your-theme']` selector
-2. Import in `src/styles/theme.css`
-3. Add to `THEMES` array in `src/components/themes/theme.config.ts`
-4. (Optional) Add fonts in `font.config.ts`
-5. (Optional) Set as default in `theme.config.ts`
+1. Create `src/styles/themes/your-theme.css` with a `[data-theme='your-theme']` selector
+2. Import it in `src/styles/theme.css`
+3. Set `DEFAULT_THEME` in `src/components/themes/theme.config.ts`
+4. Update `font.config.ts` if the theme references different fonts — every loader there is fetched at build time, so unused entries are pure overhead
 
 See `docs/themes.md` for detailed theming guide.
 
@@ -607,7 +597,6 @@ node scripts/cleanup.js --interactive
 node scripts/cleanup.js kanban          # Remove kanban board
 node scripts/cleanup.js chat            # Remove messaging UI
 node scripts/cleanup.js notifications   # Remove notification center
-node scripts/cleanup.js themes          # Keep one theme, remove rest
 node scripts/cleanup.js sentry          # Remove error tracking
 
 # Remove multiple at once
@@ -739,7 +728,7 @@ See "Theming System" section above or `docs/themes.md`.
 
 **Theme not applying**
 
-- Check theme name matches in CSS `[data-theme]` and `theme.config.ts`
+- Check the CSS selector matches `DEFAULT_THEME` in `theme.config.ts`
 - Verify theme CSS is imported in `theme.css`
 
 **Navigation items not showing**

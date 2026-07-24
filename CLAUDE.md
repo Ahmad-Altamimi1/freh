@@ -11,11 +11,16 @@ This is a Next.js 16 + shadcn/ui admin dashboard starter kit.
 - **[docs/supabase-setup.md](./docs/supabase-setup.md)** — Supabase Auth, PostgreSQL/Drizzle, storage bucket, environment variables
 - **[docs/audit-logging.md](./docs/audit-logging.md)** — Generic audit logging: actions, sinks, connecting to a real table
 - **[docs/storage.md](./docs/storage.md)** — Private file storage: upload, signed URLs, replace/delete
+- **[docs/organizations.md](./docs/organizations.md)** — Organizations registry: schema, Excel import, advanced filters, reports, Arabic/RTL
 
 ## Critical Conventions
 
 - **Auth** — Supabase Auth. `requireUser()` from `@/lib/auth/session` at the top of every protected page/action; always `getUser()`, never `getSession()`, for an authorization decision. The proxy (`src/proxy.ts`) is a UX redirect, not the security boundary
-- **Database schema is owned by the user** — `src/db/schema/` is intentionally empty. Do NOT create business tables, migrations, or models unless explicitly asked
+- **Database schema is owned by the user** — do NOT create business tables, migrations, or models unless explicitly asked. `src/db/schema/` currently holds one table, `organizations` (see [docs/organizations.md](./docs/organizations.md))
+- **Arabic / RTL** — the UI is Arabic and `<html dir='rtl'>`. Use logical Tailwind utilities (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`) — never `ml-`/`pl-`/`left-`. Physical classes keyed to `data-[side=…]` are the exception: those track a popup's actual placement. New user-facing strings go in a feature's `constants/labels.ts`
+- **Directional icons** — name the chevron/arrow as it would be in LTR (`chevronRight` for "next", `chevronLeft` for "back") and add `rtl:rotate-180` to mirror it. Picking the RTL-correct icon *and* rotating it points it backwards
+- **LTR islands** — phone numbers, national IDs, emails, dates and filenames need `dir='ltr'` on the element; the bidi algorithm otherwise reorders digit groups. Recharts needs `dir='ltr'` on its container — it positions text with SVG `text-anchor`, whose `start`/`end` follow the inline direction
+- **Arabic matching** — any comparison of Arabic text (search, dedupe, import matching) must go through `normalizeArabic()` in `@/lib/arabic`. Raw string equality fails on hamza/taa-marbuta variants
 - **Supabase clients** — `@/lib/supabase/client` (browser), `@/lib/supabase/server` (RSC/actions, RLS enforced), `@/lib/supabase/admin` (service role, RLS bypassed — auth-check first), `getDb()` from `@/db` (Drizzle, RLS bypassed)
 - **Files** — use the generic helpers in `@/lib/storage`; never add entity-specific wrappers like `uploadProductImage()`
 - **React Query** for all data fetching — `void prefetchQuery()` on server + `useSuspenseQuery` on client (standard TanStack pattern), `useMutation` for forms, `HydrationBoundary` + `dehydrate` for hydration, `<Suspense fallback>` for streaming

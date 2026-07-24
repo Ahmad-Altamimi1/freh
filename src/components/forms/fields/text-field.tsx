@@ -19,7 +19,12 @@ interface TextFieldProps extends Omit<
   label: string;
   description?: string;
   required?: boolean;
-  type?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'number';
+  /**
+   * `date` yields a native picker whose value is already `YYYY-MM-DD` — the
+   * exact format a Postgres `date` column wants, with no parsing or timezone
+   * conversion in between.
+   */
+  type?: 'text' | 'email' | 'password' | 'tel' | 'url' | 'number' | 'date';
 }
 
 export function TextField({

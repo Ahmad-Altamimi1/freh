@@ -15,8 +15,13 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  // `template` so page titles read "الجمعيات | وزارة الثقافة" without every
+  // page having to repeat the suffix.
+  title: {
+    default: 'وزارة الثقافة — سجل الجمعيات الثقافية',
+    template: '%s | وزارة الثقافة'
+  },
+  description: 'سجل الجمعيات الثقافية في محافظة إربد — بحث وتصفية وتقارير.'
 };
 
 export const viewport: Viewport = {
@@ -27,7 +32,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     // The app ships a single theme, so data-theme is static. Light/dark is a
     // separate axis, handled by next-themes via the `class` attribute.
-    <html lang='en' suppressHydrationWarning data-theme={DEFAULT_THEME}>
+    //
+    // `dir='rtl'` is set here rather than on the dashboard shell so that
+    // portalled overlays — which Base UI renders at the end of <body> — inherit
+    // it too. Set it lower down and every popover, dialog and toast would
+    // silently revert to left-to-right.
+    // `fontVariables` belongs on <html>, not <body>: the theme declares
+    // `--font-sans: var(--font-plex-arabic), …` on this same element. A custom
+    // property that references an undefined variable resolves to nothing, so
+    // with the font classes one level down the whole declaration would be
+    // invalid and every surface would silently fall back to the system sans.
+    <html
+      lang='ar'
+      dir='rtl'
+      suppressHydrationWarning
+      data-theme={DEFAULT_THEME}
+      className={fontVariables}
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -42,12 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body
-        className={cn(
-          'bg-background overflow-x-hidden overscroll-none font-sans antialiased',
-          fontVariables
-        )}
-      >
+      <body className={cn('bg-background overflow-x-hidden overscroll-none font-sans antialiased')}>
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
           <ThemeProvider

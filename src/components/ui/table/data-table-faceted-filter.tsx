@@ -89,7 +89,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             <div className='hidden items-center gap-1 lg:flex'>
               {selectedValues.size > 2 ? (
                 <Badge variant='secondary' className='rounded-sm px-1 font-normal'>
-                  {selectedValues.size} selected
+                  {selectedValues.size} محدد
                 </Badge>
               ) : (
                 options
@@ -112,7 +112,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         <Command>
           <CommandInput placeholder={title} />
           <CommandList className='max-h-full'>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>لا توجد نتائج.</CommandEmpty>
             <CommandGroup className='max-h-[18.75rem] overflow-x-hidden overflow-y-auto'>
               {options.map((option) => {
                 const isSelected = selectedValues.has(option.value);
@@ -130,7 +130,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     {option.icon && <option.icon />}
                     <span className='truncate'>{option.label}</span>
                     {option.count && (
-                      <span className='ml-auto font-mono text-xs'>{option.count}</span>
+                      <span className='ms-auto font-mono text-xs'>{option.count}</span>
                     )}
                   </CommandItem>
                 );
@@ -141,7 +141,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem onSelect={() => onReset()} className='justify-center text-center'>
-                    Clear filters
+                    مسح التصفية
                   </CommandItem>
                 </CommandGroup>
               </>

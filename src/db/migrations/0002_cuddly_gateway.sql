@@ -1,0 +1,2 @@
+ALTER TABLE "organizations" ADD COLUMN "national_id_key" text GENERATED ALWAYS AS (coalesce(national_id, '')) STORED NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "organizations_identity_key" ON "organizations" USING btree ("national_id_key","name_normalized");

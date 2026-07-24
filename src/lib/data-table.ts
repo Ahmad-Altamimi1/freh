@@ -18,8 +18,16 @@ export function getCommonPinningStyles<TData>({
       : isFirstRightPinnedColumn
         ? '5px 0 5px -5px var(--border) inset'
         : undefined,
-    left: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
-    right: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
+    // Logical inset properties rather than `left`/`right`.
+    //
+    // TanStack's pinning sides are logical, not physical: 'left' means the
+    // leading edge — the side a row starts from — and `getStart`/`getAfter`
+    // measure from there. On an RTL page the leading edge is the right one, so
+    // writing `left` would pin the column to the wrong side of the table while
+    // still measuring its offset from the other, stacking pinned columns on top
+    // of one another.
+    insetInlineStart: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
+    insetInlineEnd: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
     position: isPinned ? 'sticky' : 'relative',
     background: isPinned ? 'var(--background)' : undefined,
     width: column.getSize(),

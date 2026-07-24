@@ -42,9 +42,9 @@ function Calendar({
           'size-8 p-0 font-normal aria-selected:opacity-100'
         ),
         range_start:
-          'day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground rounded-l-md',
+          'day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground rounded-s-md',
         range_end:
-          'day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground rounded-r-md',
+          'day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground rounded-e-md',
         selected:
           'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-md',
         today: 'bg-accent text-accent-foreground rounded-md',

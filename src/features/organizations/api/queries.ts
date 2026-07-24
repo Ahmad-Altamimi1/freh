@@ -1,0 +1,44 @@
+import { queryOptions } from '@tanstack/react-query';
+
+import { getOrganizationFacets, getOrganizationReport, getOrganizations } from './service';
+import type { OrganizationFilters } from './types';
+
+/**
+ * Query key factory.
+ *
+ * The whole filter object is part of the list key, so two different filter
+ * states are two different cache entries and paging back to a previous filter is
+ * instant rather than a refetch.
+ */
+export const organizationKeys = {
+  all: ['organizations'] as const,
+  lists: () => [...organizationKeys.all, 'list'] as const,
+  list: (filters: OrganizationFilters) => [...organizationKeys.lists(), filters] as const,
+  facets: (filters: OrganizationFilters) => [...organizationKeys.all, 'facets', filters] as const,
+  report: (filters: OrganizationFilters) => [...organizationKeys.all, 'report', filters] as const
+};
+
+export const organizationsQueryOptions = (filters: OrganizationFilters) =>
+  queryOptions({
+    queryKey: organizationKeys.list(filters),
+    queryFn: () => getOrganizations(filters)
+  });
+
+/**
+ * Facet options are deliberately keyed on an empty filter: the dropdown should
+ * offer every district that exists, not only those surviving the current
+ * filter — otherwise selecting one district removes all the others from the
+ * list that produced it.
+ */
+export const organizationFacetsQueryOptions = () =>
+  queryOptions({
+    queryKey: organizationKeys.facets({}),
+    queryFn: () => getOrganizationFacets({}),
+    staleTime: 5 * 60 * 1000
+  });
+
+export const organizationReportQueryOptions = (filters: OrganizationFilters) =>
+  queryOptions({
+    queryKey: organizationKeys.report(filters),
+    queryFn: () => getOrganizationReport(filters)
+  });

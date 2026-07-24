@@ -11,19 +11,41 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { getCommonPinningStyles } from '@/lib/data-table';
+import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   table: TanstackTable<TData>;
   actionBar?: React.ReactNode;
+  /**
+   * Refetching in the background — dims the rows and blocks interaction with
+   * them, while leaving the toolbar above fully usable.
+   *
+   * Deliberately not a skeleton: the previous rows are still meaningful, and
+   * replacing them wholesale makes every filter tweak feel like a page load.
+   */
+  isPending?: boolean;
+  /** Choices for the rows-per-page control. Must include the table's default. */
+  pageSizeOptions?: number[];
 }
 
-export function DataTable<TData>({ table, actionBar, children }: DataTableProps<TData>) {
+export function DataTable<TData>({
+  table,
+  actionBar,
+  isPending,
+  pageSizeOptions,
+  children
+}: DataTableProps<TData>) {
   return (
     <div className='flex flex-1 flex-col space-y-4'>
       {children}
-      <div className='relative flex flex-1'>
-        <div className='absolute inset-0 flex overflow-hidden rounded-lg border'>
+      <div className='relative flex flex-1' aria-busy={isPending}>
+        <div
+          className={cn(
+            'absolute inset-0 flex overflow-hidden rounded-lg border transition-opacity duration-200',
+            isPending && 'pointer-events-none opacity-50'
+          )}
+        >
           <ScrollArea className='h-full w-full'>
             <Table>
               <TableHeader className='bg-muted sticky top-0 z-10'>
@@ -64,7 +86,7 @@ export function DataTable<TData>({ table, actionBar, children }: DataTableProps<
                 ) : (
                   <TableRow>
                     <TableCell colSpan={table.getAllColumns().length} className='h-24 text-center'>
-                      No results.
+                      لا توجد نتائج.
                     </TableCell>
                   </TableRow>
                 )}
@@ -75,7 +97,7 @@ export function DataTable<TData>({ table, actionBar, children }: DataTableProps<
         </div>
       </div>
       <div className='flex flex-col gap-2.5'>
-        <DataTablePagination table={table} />
+        <DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
         {actionBar && table.getFilteredSelectedRowModel().rows.length > 0 && actionBar}
       </div>
     </div>

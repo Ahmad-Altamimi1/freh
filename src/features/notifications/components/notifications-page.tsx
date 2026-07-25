@@ -1,35 +1,49 @@
 'use client';
 
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
 import { Icons } from '@/components/icons';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { NotificationCard } from '@/components/ui/notification-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useRouter } from 'next/navigation';
-import { useNotificationStore } from '../utils/store';
+import {
+  markAllNotificationsAsReadMutation,
+  markNotificationAsReadMutation
+} from '../api/mutations';
+import { notificationsQueryOptions } from '../api/queries';
+import type { Notification } from '../api/types';
+import { NOTIFICATION_LABELS } from '../constants/labels';
 
-const actionRoutes: Record<string, string> = {
-  view: '/dashboard/workspaces',
-  'view-product': '/dashboard/product',
-  billing: '/dashboard/billing',
-  open: '/dashboard/kanban',
-  'open-chat': '/dashboard/chat'
-};
+const LABELS = NOTIFICATION_LABELS;
 
 export default function NotificationsPage() {
-  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotificationStore();
+  const { data } = useSuspenseQuery(notificationsQueryOptions());
   const router = useRouter();
-  const count = unreadCount();
+  const notifications = data.data;
+
+  const markAsReadMutation = useMutation({
+    ...markNotificationAsReadMutation,
+    onError: (error) => toast.error(error.message || LABELS.center.markReadFailed)
+  });
+
+  const markAllAsReadMutation = useMutation({
+    ...markAllNotificationsAsReadMutation,
+    onError: (error) => toast.error(error.message || LABELS.center.markAllReadFailed)
+  });
 
   const unreadNotifications = notifications.filter((n) => n.status === 'unread');
   const readNotifications = notifications.filter((n) => n.status === 'read');
+  const unreadCount = unreadNotifications.length;
 
-  const renderList = (items: typeof notifications) => {
+  const renderList = (items: Notification[]) => {
     if (items.length === 0) {
       return (
         <div className='flex flex-col items-center justify-center py-16'>
           <Icons.notification className='text-muted-foreground/40 mb-3 h-10 w-10' />
-          <p className='text-muted-foreground text-sm'>No notifications</p>
+          <p className='text-muted-foreground text-sm'>{LABELS.empty}</p>
         </div>
       );
     }
@@ -45,12 +59,13 @@ export default function NotificationsPage() {
             status={notification.status}
             createdAt={notification.createdAt}
             actions={notification.actions}
-            onMarkAsRead={markAsRead}
-            onAction={(notifId, actionId) => {
-              const route = actionRoutes[actionId];
-              if (route) {
-                markAsRead(notifId);
-                router.push(route);
+            onMarkAsRead={(id) => markAsReadMutation.mutate(id)}
+            onAction={(notificationId, actionId) => {
+              const target = notifications.find((n) => n.id === notificationId);
+              const action = target?.actions.find((a) => a.id === actionId);
+              if (action?.href) {
+                markAsReadMutation.mutate(notificationId);
+                router.push(action.href);
               }
             }}
           />
@@ -61,21 +76,21 @@ export default function NotificationsPage() {
 
   return (
     <PageContainer
-      pageTitle='Notifications'
-      pageDescription='View and manage all your notifications.'
+      pageTitle={LABELS.page.title}
+      pageDescription={LABELS.page.description}
       pageHeaderAction={
-        count > 0 ? (
-          <Button variant='outline' size='sm' onClick={markAllAsRead}>
-            Mark all as read
+        unreadCount > 0 ? (
+          <Button variant='outline' size='sm' onClick={() => markAllAsReadMutation.mutate()}>
+            {LABELS.center.markAllRead}
           </Button>
         ) : undefined
       }
     >
       <Tabs defaultValue='all'>
         <TabsList>
-          <TabsTrigger value='all'>All ({notifications.length})</TabsTrigger>
-          <TabsTrigger value='unread'>Unread ({unreadNotifications.length})</TabsTrigger>
-          <TabsTrigger value='read'>Read ({readNotifications.length})</TabsTrigger>
+          <TabsTrigger value='all'>{LABELS.tabs.all(notifications.length)}</TabsTrigger>
+          <TabsTrigger value='unread'>{LABELS.tabs.unread(unreadNotifications.length)}</TabsTrigger>
+          <TabsTrigger value='read'>{LABELS.tabs.read(readNotifications.length)}</TabsTrigger>
         </TabsList>
         <TabsContent value='all' className='mt-4'>
           {renderList(notifications)}

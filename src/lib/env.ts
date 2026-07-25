@@ -21,7 +21,13 @@ const publicEnvSchema = z.object({
 const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
-  SUPABASE_STORAGE_BUCKET: z.string().min(1).default('private')
+  SUPABASE_STORAGE_BUCKET: z.string().min(1).default('private'),
+  /** Shared secret the term-notifications cron route checks against. Also the
+   *  literal bearer token Vercel Cron auto-sends when a project env var is
+   *  named exactly `CRON_SECRET`. */
+  CRON_SECRET: z.string().min(1),
+  /** Days before `term_end` to start notifying admins. */
+  TERM_END_NOTICE_DAYS: z.coerce.number().int().positive().default(10)
 });
 
 type PublicEnv = z.infer<typeof publicEnvSchema>;
@@ -63,7 +69,9 @@ export function getServerEnv(): ServerEnv {
   const parsed = serverEnvSchema.safeParse({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
-    SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET
+    SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET,
+    CRON_SECRET: process.env.CRON_SECRET,
+    TERM_END_NOTICE_DAYS: process.env.TERM_END_NOTICE_DAYS
   });
 
   if (!parsed.success) formatIssues('server', parsed.error);

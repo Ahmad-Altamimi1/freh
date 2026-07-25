@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, ilike, isNotNull, ne, sql, type SQL } from '
 
 import { getDb } from '@/db';
 import { organizations } from '@/db/schema/organizations';
+import { calculateTermEnd } from '../lib/term';
 import { buildSearchKey, normalizeArabic } from '@/lib/arabic';
 import { auditLog } from '@/lib/audit';
 import { hasAnyRole } from '@/lib/auth/roles';
@@ -40,6 +41,9 @@ const FILTERABLE_COLUMNS: FilterableColumns = {
   classification: organizations.classification,
   nationalId: organizations.nationalId,
   establishedAt: organizations.establishedAt,
+  termStart: organizations.termStart,
+  termEnd: organizations.termEnd,
+  termLength: organizations.termLength,
   directorName: organizations.directorName,
   mobile: organizations.mobile,
   serialNo: organizations.serialNo
@@ -56,6 +60,9 @@ const SELECT_COLUMNS = {
   district: organizations.district,
   classification: organizations.classification,
   establishedAt: organizations.establishedAt,
+  termStart: organizations.termStart,
+  termEnd: organizations.termEnd,
+  termLength: organizations.termLength,
   directorName: organizations.directorName,
   mobile: organizations.mobile,
   serialNo: organizations.serialNo,
@@ -300,6 +307,11 @@ function toWriteValues(input: OrganizationMutationPayload) {
     classification: blankToNull(input.classification),
     nationalId: blankToNull(input.nationalId),
     establishedAt: blankToNull(input.establishedAt),
+    termStart: blankToNull(input.termStart),
+    termLength: input.termLength === '' ? null : input.termLength,
+    // Always recomputed here, never taken from the client — see the comment
+    // on `OrganizationMutationPayload`, which has no `termEnd` field at all.
+    termEnd: calculateTermEnd(input.termStart, input.termLength) || null,
     directorName: blankToNull(input.directorName),
     mobile: blankToNull(input.mobile)
   };

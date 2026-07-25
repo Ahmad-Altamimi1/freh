@@ -19,6 +19,9 @@ export const ORGANIZATION_FIELD_LABELS = {
   classification: 'التصنيف',
   nationalId: 'الرقم الوطني',
   establishedAt: 'تاريخ التأسيس',
+  termStart: 'تاريخ بداية الدورة',
+  termEnd: 'تاريخ نهاية الدورة',
+  termLength: 'مدة الدورة (بالأشهر)',
   directorName: 'اسم المدير',
   mobile: 'رقم الهاتف',
   serialNo: 'التسلسل'
@@ -124,6 +127,7 @@ export const ORGANIZATION_LABELS = {
     noClassification: 'بدون تصنيف',
     mobileHint: 'الصيغة المتوقعة: 07XXXXXXXX',
     nationalIdHint: 'الرقم الوطني ليس فريدًا — قد تشترك جمعيتان في نفس الرقم.',
+    termEndHint: 'يُحسب تلقائيًا من تاريخ البداية ومدة الدورة.',
     created: 'تمت إضافة الجمعية.',
     updated: 'تم حفظ التغييرات.',
     createFailed: 'تعذّرت إضافة الجمعية.',

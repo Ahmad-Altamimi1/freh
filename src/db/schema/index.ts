@@ -12,3 +12,4 @@
  */
 
 export * from './organizations';
+export * from './notifications';

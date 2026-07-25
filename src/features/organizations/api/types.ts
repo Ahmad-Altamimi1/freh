@@ -57,6 +57,8 @@ export type OrganizationReport = {
  * Only the fields a person edits. `nameNormalized` and `searchKey` are derived
  * by the write layer and `nationalIdKey` by Postgres, so none of them appear
  * here — a caller able to set them could desynchronise matching from the data.
+ * `termEnd` is absent for the same reason: it is always `termStart` +
+ * `termLength`, recomputed by the write layer on every save.
  */
 export type OrganizationMutationPayload = {
   name: string;
@@ -65,6 +67,10 @@ export type OrganizationMutationPayload = {
   nationalId: string;
   /** `YYYY-MM-DD`, or `''` for unset. */
   establishedAt: string;
+  /** `YYYY-MM-DD`, or `''` for unset. */
+  termStart: string;
+  /** Months, or `''` for unset. */
+  termLength: number | '';
   directorName: string;
   mobile: string;
 };

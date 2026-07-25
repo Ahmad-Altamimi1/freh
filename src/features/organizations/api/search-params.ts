@@ -22,6 +22,9 @@ export const ORGANIZATION_COLUMN_IDS = [
   'classification',
   'nationalId',
   'establishedAt',
+  'termStart',
+  'termEnd',
+  'termLength',
   'directorName',
   'mobile',
   'serialNo'

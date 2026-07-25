@@ -2,6 +2,7 @@
 
 import type { FC } from 'react';
 import { Icons } from '@/components/icons';
+import { formatDateAr } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export type NotificationStatus = 'unread' | 'read' | 'archived';
@@ -14,6 +15,8 @@ export interface NotificationAction {
   type: ActionType;
   style?: ActionStyle;
   executed?: boolean;
+  /** Destination for a 'redirect' action — the consumer resolves the navigation. */
+  href?: string;
 }
 
 export interface NotificationCardProps {
@@ -29,23 +32,11 @@ export interface NotificationCardProps {
   className?: string;
 }
 
+// Absolute Arabic date rather than relative time ("5m ago"): correct relative
+// phrasing needs singular/dual/plural noun agreement (دقيقة/دقيقتين/دقائق) that
+// a generic counter can't produce correctly for every value.
 const formatDate = (date: string | Date): string => {
-  const d = new Date(date);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  });
+  return formatDateAr(date, { hour: 'numeric', minute: 'numeric' });
 };
 
 const getActionIcon = (actionType: ActionType) => {

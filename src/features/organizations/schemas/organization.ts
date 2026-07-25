@@ -65,6 +65,21 @@ export const organizationFormSchema = z.object({
     .string()
     .trim()
     .refine((value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value), 'تاريخ التأسيس غير صالح'),
+  termStart: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value),
+      'تاريخ بداية الدورة غير صالح'
+    ),
+  termLength: z.union([
+    z.literal(''),
+    z
+      .number()
+      .int('مدة الدورة يجب أن تكون عددًا صحيحًا من الأشهر')
+      .min(1, 'مدة الدورة يجب أن تكون شهرًا واحدًا على الأقل')
+      .max(600, 'مدة الدورة طويلة جدًا')
+  ]),
   directorName: z.string().trim().max(200),
   mobile: z
     .string()

@@ -61,6 +61,15 @@ export const organizations = pgTable(
 
     establishedAt: date('established_at'),
 
+    /** Governing-board term. Absent for every row seeded from the Access export. */
+    termStart: date('term_start'),
+
+    /** Always `termStart` + `termLength` months, recomputed on every write — never user-entered directly. */
+    termEnd: date('term_end'),
+
+    /** Term length in months. */
+    termLength: integer('term_length'),
+
     directorName: text('director_name'),
 
     /** Stored as text to preserve the leading zero. */
@@ -86,7 +95,9 @@ export const organizations = pgTable(
     index('organizations_district_idx').on(table.district),
     index('organizations_classification_idx').on(table.classification),
     index('organizations_established_at_idx').on(table.establishedAt),
-    index('organizations_national_id_idx').on(table.nationalId)
+    index('organizations_national_id_idx').on(table.nationalId),
+    index('organizations_term_start_idx').on(table.termStart),
+    index('organizations_term_end_idx').on(table.termEnd)
   ]
 );
 

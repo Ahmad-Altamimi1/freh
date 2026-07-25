@@ -5,7 +5,7 @@ import type { Column, ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import { Icons } from '@/components/icons';
-import { formatDateAr } from '@/lib/format';
+import { formatDateAr, formatNumberAr } from '@/lib/format';
 import type { Option } from '@/types/data-table';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../../constants/labels';
 import type { Organization } from '../../api/types';
@@ -157,6 +157,70 @@ export function getOrganizationColumns({
         label: ORGANIZATION_FIELD_LABELS.establishedAt,
         variant: 'dateRange',
         icon: Icons.calendar
+      },
+      enableColumnFilter: true
+    },
+    {
+      id: 'termStart',
+      accessorKey: 'termStart',
+      header: ({ column }: { column: Column<Organization, unknown> }) => (
+        <DataTableColumnHeader column={column} title={ORGANIZATION_FIELD_LABELS.termStart} />
+      ),
+      cell: ({ cell }) => {
+        const value = cell.getValue<Organization['termStart']>();
+        return value ? (
+          <span className='whitespace-nowrap'>{formatDateAr(value)}</span>
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        );
+      },
+      meta: {
+        label: ORGANIZATION_FIELD_LABELS.termStart,
+        variant: 'dateRange',
+        icon: Icons.calendar
+      },
+      enableColumnFilter: true
+    },
+    {
+      id: 'termEnd',
+      accessorKey: 'termEnd',
+      header: ({ column }: { column: Column<Organization, unknown> }) => (
+        <DataTableColumnHeader column={column} title={ORGANIZATION_FIELD_LABELS.termEnd} />
+      ),
+      cell: ({ cell }) => {
+        const value = cell.getValue<Organization['termEnd']>();
+        return value ? (
+          <span className='whitespace-nowrap'>{formatDateAr(value)}</span>
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        );
+      },
+      meta: {
+        label: ORGANIZATION_FIELD_LABELS.termEnd,
+        variant: 'dateRange',
+        icon: Icons.calendar
+      },
+      enableColumnFilter: true
+    },
+    {
+      id: 'termLength',
+      accessorKey: 'termLength',
+      header: ({ column }: { column: Column<Organization, unknown> }) => (
+        <DataTableColumnHeader column={column} title={ORGANIZATION_FIELD_LABELS.termLength} />
+      ),
+      cell: ({ cell }) => {
+        const value = cell.getValue<Organization['termLength']>();
+        return value ? (
+          <span dir='ltr' className='tabular-nums'>
+            {formatNumberAr(value)}
+          </span>
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        );
+      },
+      meta: {
+        label: ORGANIZATION_FIELD_LABELS.termLength,
+        variant: 'number'
       },
       enableColumnFilter: true
     },

@@ -16,7 +16,7 @@ This is a Next.js 16 + shadcn/ui admin dashboard starter kit.
 ## Critical Conventions
 
 - **Auth** — Supabase Auth. `requireUser()` from `@/lib/auth/session` at the top of every protected page/action; always `getUser()`, never `getSession()`, for an authorization decision. The proxy (`src/proxy.ts`) is a UX redirect, not the security boundary
-- **Database schema is owned by the user** — do NOT create business tables, migrations, or models unless explicitly asked. `src/db/schema/` currently holds one table, `organizations` (see [docs/organizations.md](./docs/organizations.md))
+- **Database schema is owned by the user** — do NOT create business tables, migrations, or models unless explicitly asked. `src/db/schema/` currently holds `organizations` (see [docs/organizations.md](./docs/organizations.md)) and `notifications`
 - **Arabic / RTL** — the UI is Arabic and `<html dir='rtl'>`. Use logical Tailwind utilities (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`) — never `ml-`/`pl-`/`left-`. Physical classes keyed to `data-[side=…]` are the exception: those track a popup's actual placement. New user-facing strings go in a feature's `constants/labels.ts`
 - **Directional icons** — name the chevron/arrow as it would be in LTR (`chevronRight` for "next", `chevronLeft` for "back") and add `rtl:rotate-180` to mirror it. Picking the RTL-correct icon *and* rotating it points it backwards
 - **LTR islands** — phone numbers, national IDs, emails, dates and filenames need `dir='ltr'` on the element; the bidi algorithm otherwise reorders digit groups. Recharts needs `dir='ltr'` on its container — it positions text with SVG `text-anchor`, whose `start`/`end` follow the inline direction

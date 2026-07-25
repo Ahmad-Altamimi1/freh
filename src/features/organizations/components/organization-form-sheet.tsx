@@ -1,11 +1,14 @@
 'use client';
 
+import { useStore } from '@tanstack/react-form';
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   Sheet,
   SheetContent,
@@ -15,10 +18,12 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
+import { formatDateAr } from '@/lib/format';
 import { createOrganizationMutation, updateOrganizationMutation } from '../api/mutations';
 import { organizationFacetsQueryOptions } from '../api/queries';
 import type { Organization } from '../api/types';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
+import { calculateTermEnd } from '../lib/term';
 import { organizationFormSchema, type OrganizationFormValues } from '../schemas/organization';
 
 const LABELS = ORGANIZATION_LABELS.form;
@@ -90,6 +95,8 @@ export function OrganizationFormSheet({
       classification: organization?.classification ?? '',
       nationalId: organization?.nationalId ?? '',
       establishedAt: organization?.establishedAt ?? '',
+      termStart: organization?.termStart ?? '',
+      termLength: organization?.termLength ?? '',
       directorName: organization?.directorName ?? '',
       mobile: organization?.mobile ?? ''
     } as OrganizationFormValues,
@@ -118,6 +125,8 @@ export function OrganizationFormSheet({
       classification: organization?.classification ?? '',
       nationalId: organization?.nationalId ?? '',
       establishedAt: organization?.establishedAt ?? '',
+      termStart: organization?.termStart ?? '',
+      termLength: organization?.termLength ?? '',
       directorName: organization?.directorName ?? '',
       mobile: organization?.mobile ?? ''
     } as OrganizationFormValues);
@@ -128,6 +137,13 @@ export function OrganizationFormSheet({
   const { FormTextField, FormSelectField } = useFormFields<OrganizationFormValues>();
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Never a form field — always derived, so it can't drift from what the
+  // server will actually save. Recomputed with the same pure function the
+  // write layer uses.
+  const termEnd = useStore(form.store, (state) =>
+    calculateTermEnd(state.values.termStart, state.values.termLength)
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -181,6 +197,36 @@ export function OrganizationFormSheet({
                 type='date'
                 dir='ltr'
               />
+
+              <FormTextField
+                name='termStart'
+                label={ORGANIZATION_FIELD_LABELS.termStart}
+                type='date'
+                dir='ltr'
+              />
+
+              <FormTextField
+                name='termLength'
+                label={ORGANIZATION_FIELD_LABELS.termLength}
+                type='number'
+                dir='ltr'
+                min={1}
+              />
+
+              {/* Not a form field — always derived from termStart + termLength,
+                  never independently editable or submitted. */}
+              <Field>
+                <FieldLabel htmlFor='term-end-preview'>
+                  {ORGANIZATION_FIELD_LABELS.termEnd}
+                </FieldLabel>
+                <Input
+                  id='term-end-preview'
+                  dir='ltr'
+                  disabled
+                  value={termEnd ? formatDateAr(termEnd) : ''}
+                />
+                <FieldDescription>{LABELS.termEndHint}</FieldDescription>
+              </Field>
 
               <FormTextField
                 name='directorName'

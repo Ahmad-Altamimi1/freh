@@ -1,13 +1,22 @@
-import React from 'react';
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+import React, { Suspense } from 'react';
 import { SidebarTrigger } from '../ui/sidebar';
 import { Separator } from '../ui/separator';
 import { Breadcrumbs } from '../breadcrumbs';
 import SearchInput from '../search-input';
 import { ThemeModeToggle } from '../themes/theme-mode-toggle';
 import CtaGithub from './cta-github';
-import { NotificationCenter } from '@/features/notifications/components/notification-center';
+import { notificationsQueryOptions } from '@/features/notifications/api/queries';
+import {
+  NotificationCenter,
+  NotificationCenterSkeleton
+} from '@/features/notifications/components/notification-center';
+import { getQueryClient } from '@/lib/query-client';
 
-export default function Header() {
+export default async function Header() {
+  const queryClient = getQueryClient();
+  void queryClient.prefetchQuery(notificationsQueryOptions());
+
   return (
     <header className='bg-background/60 sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-2 backdrop-blur-md md:h-14'>
       <div className='flex items-center gap-2 px-4'>
@@ -22,7 +31,11 @@ export default function Header() {
           <SearchInput />
         </div>
         <ThemeModeToggle />
-        <NotificationCenter />
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <Suspense fallback={<NotificationCenterSkeleton />}>
+            <NotificationCenter />
+          </Suspense>
+        </HydrationBoundary>
       </div>
     </header>
   );

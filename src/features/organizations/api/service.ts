@@ -1,10 +1,23 @@
 'use server';
 
-import { and, asc, count, desc, eq, ilike, isNotNull, ne, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  lt,
+  ne,
+  sql,
+  type SQL
+} from 'drizzle-orm';
 
 import { getDb } from '@/db';
 import { organizations } from '@/db/schema/organizations';
-import { calculateTermEnd } from '../lib/term';
+import { calculateTermEnd, getTermBucketCutoffs, getTermRemainingBucketRange } from '../lib/term';
 import { buildSearchKey, normalizeArabic } from '@/lib/arabic';
 import { auditLog } from '@/lib/audit';
 import { hasAnyRole } from '@/lib/auth/roles';
@@ -16,7 +29,8 @@ import type {
   OrganizationFilters,
   OrganizationMutationPayload,
   OrganizationReport,
-  OrganizationsResponse
+  OrganizationsResponse,
+  OrganizationTermBucketCounts
 } from './types';
 
 // ============================================================
@@ -92,6 +106,17 @@ function buildWhere(filters: OrganizationFilters): SQL | undefined {
     joinOperator: filters.joinOperator ?? 'and'
   });
   if (advanced) conditions.push(advanced);
+
+  // Only the term-ending-soon page ever sets this — the main listing omits it
+  // entirely, so this never narrows a query that didn't ask for it.
+  if (filters.remainingBucket) {
+    conditions.push(isNotNull(organizations.termEnd));
+    if (filters.remainingBucket !== 'all') {
+      const range = getTermRemainingBucketRange(filters.remainingBucket);
+      if (range.gte) conditions.push(gte(organizations.termEnd, range.gte));
+      if (range.lt) conditions.push(lt(organizations.termEnd, range.lt));
+    }
+  }
 
   if (conditions.length === 0) return undefined;
   return conditions.length === 1 ? conditions[0] : and(...conditions);
@@ -193,6 +218,52 @@ export async function getOrganizationFacets(
     classifications: classifications.filter((row) =>
       Boolean(row.value)
     ) as OrganizationFacets['classifications']
+  };
+}
+
+/**
+ * Counts per "time remaining" bucket, for the tabs on the term-ending-soon
+ * page. Takes the same quick-search/advanced-filter state as the table it sits
+ * above — excluding `remainingBucket` itself, since the point is to show how
+ * many rows fall in *each* bucket under whatever else is currently filtered.
+ *
+ * One query with conditional aggregates, same style as `getOrganizationReport`,
+ * rather than one query per bucket.
+ */
+export async function getOrganizationTermBucketCounts(
+  filters: OrganizationFilters
+): Promise<OrganizationTermBucketCounts> {
+  await requireUser();
+
+  const db = getDb();
+  const where = buildWhere({ ...filters, remainingBucket: undefined });
+  const termEnd = organizations.termEnd;
+  const cutoffs = getTermBucketCutoffs();
+
+  const notNull = isNotNull(termEnd);
+  const scopedWhere = where ? and(where, notNull) : notNull;
+
+  const [row] = await db
+    .select({
+      all: count(),
+      expired: sql<number>`count(*) filter (where ${termEnd} < ${cutoffs.today})::int`,
+      lt_2mo: sql<number>`count(*) filter (where ${termEnd} >= ${cutoffs.today} and ${termEnd} < ${cutoffs.cutoff2mo})::int`,
+      lt_3mo: sql<number>`count(*) filter (where ${termEnd} >= ${cutoffs.cutoff2mo} and ${termEnd} < ${cutoffs.cutoff3mo})::int`,
+      lt_6mo: sql<number>`count(*) filter (where ${termEnd} >= ${cutoffs.cutoff3mo} and ${termEnd} < ${cutoffs.cutoff6mo})::int`,
+      lt_1yr: sql<number>`count(*) filter (where ${termEnd} >= ${cutoffs.cutoff6mo} and ${termEnd} < ${cutoffs.cutoff1yr})::int`,
+      gt_1yr: sql<number>`count(*) filter (where ${termEnd} >= ${cutoffs.cutoff1yr})::int`
+    })
+    .from(organizations)
+    .where(scopedWhere);
+
+  return {
+    all: row?.all ?? 0,
+    expired: row?.expired ?? 0,
+    lt_2mo: row?.lt_2mo ?? 0,
+    lt_3mo: row?.lt_3mo ?? 0,
+    lt_6mo: row?.lt_6mo ?? 0,
+    lt_1yr: row?.lt_1yr ?? 0,
+    gt_1yr: row?.gt_1yr ?? 0
   };
 }
 

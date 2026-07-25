@@ -4,6 +4,7 @@ import { getDb } from '@/db';
 import { organizations } from '@/db/schema/organizations';
 import type { NewNotificationRow } from '@/db/schema/notifications';
 import { serializeOrganizationsParams } from '@/features/organizations/api/search-params';
+import { todayUTC } from '@/features/organizations/lib/term';
 import { NOTIFICATION_LABELS } from '@/features/notifications/constants/labels';
 import { hasAnyRole } from '@/lib/auth/roles';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -18,18 +19,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * own shared-secret check — so this file must stay a plain module, imported
  * only by `route.ts` in this same folder.
  */
-
-/**
- * `YYYY-MM-DD` for "today" in UTC. Deliberately avoids reading local Date
- * getters — same discipline as `organizations/lib/term.ts`'s
- * `calculateTermEnd`, which exists to dodge exactly this local/UTC mismatch.
- */
-function todayUTC(): string {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-    .toISOString()
-    .slice(0, 10);
-}
 
 /** `dateStr` (`YYYY-MM-DD`) plus `days`, computed via `Date.UTC` integer math. */
 function addDaysUTC(dateStr: string, days: number): string {

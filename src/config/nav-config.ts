@@ -31,11 +31,23 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'الجمعيات',
-        url: '/dashboard/organizations',
+        url: '#',
         icon: 'building',
-        isActive: false,
-        shortcut: ['o', 'o'],
-        items: []
+        isActive: true,
+        items: [
+          {
+            title: 'كل الجمعيات',
+            url: '/dashboard/organizations',
+            icon: 'building',
+            shortcut: ['o', 'o']
+          },
+          {
+            title: 'قرب انتهاء الدورة',
+            url: '/dashboard/organizations/ending-soon',
+            icon: 'clock',
+            shortcut: ['e', 's']
+          }
+        ]
       },
       {
         title: 'التقارير',

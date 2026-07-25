@@ -7,9 +7,33 @@ import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-h
 import { Icons } from '@/components/icons';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
 import type { Option } from '@/types/data-table';
-import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../../constants/labels';
+import {
+  ORGANIZATION_FIELD_LABELS,
+  ORGANIZATION_LABELS,
+  ORGANIZATION_REMAINING_TIME_COLUMN_LABEL,
+  ORGANIZATION_TERM_BUCKET_LABELS
+} from '../../constants/labels';
+import { getTermRemainingBucket, type TermRemainingBucket } from '../../lib/term';
 import type { Organization } from '../../api/types';
 import { CellAction } from './cell-action';
+
+/** Red for what's urgent, calmer variants further out — no new Badge variant needed. */
+function remainingTimeBadgeVariant(
+  bucket: TermRemainingBucket
+): 'destructive' | 'default' | 'secondary' | 'outline' {
+  switch (bucket) {
+    case 'expired':
+    case 'lt_2mo':
+      return 'destructive';
+    case 'lt_3mo':
+      return 'default';
+    case 'lt_6mo':
+    case 'lt_1yr':
+      return 'secondary';
+    case 'gt_1yr':
+      return 'outline';
+  }
+}
 
 /**
  * Column definitions for the organizations table.
@@ -25,7 +49,8 @@ import { CellAction } from './cell-action';
 export function getOrganizationColumns({
   districtOptions,
   classificationOptions,
-  canEdit
+  canEdit,
+  includeRemainingTimeColumn
 }: {
   districtOptions: Option[];
   classificationOptions: Option[];
@@ -35,6 +60,8 @@ export function getOrganizationColumns({
    * whether or not a menu was ever rendered.
    */
   canEdit: boolean;
+  /** Only the term-ending-soon page passes this — a synthetic column, not a DB field. */
+  includeRemainingTimeColumn?: boolean;
 }): ColumnDef<Organization>[] {
   return [
     {
@@ -224,6 +251,33 @@ export function getOrganizationColumns({
       },
       enableColumnFilter: true
     },
+    // Synthetic — computed from `termEnd`, not a stored column. Not sortable:
+    // sorting by nearness is already what the `termEnd` column's own sort does.
+    ...(includeRemainingTimeColumn
+      ? ([
+          {
+            id: 'remainingTime',
+            header: () => (
+              <span className='flex items-center gap-1'>
+                <Icons.clock className='size-4' />
+                {ORGANIZATION_REMAINING_TIME_COLUMN_LABEL}
+              </span>
+            ),
+            cell: ({ row }) => {
+              const termEnd = row.original.termEnd;
+              if (!termEnd) return <span className='text-muted-foreground'>—</span>;
+              const bucket = getTermRemainingBucket(termEnd);
+              return (
+                <Badge variant={remainingTimeBadgeVariant(bucket)}>
+                  {ORGANIZATION_TERM_BUCKET_LABELS[bucket]}
+                </Badge>
+              );
+            },
+            enableSorting: false,
+            enableColumnFilter: false
+          }
+        ] satisfies ColumnDef<Organization>[])
+      : []),
     {
       id: 'directorName',
       accessorKey: 'directorName',

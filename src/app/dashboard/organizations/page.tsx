@@ -44,9 +44,11 @@ export default async function Page(props: PageProps) {
         ) : null
       }
     >
-      {/* 8 data columns, plus the row-actions column for editors. */}
+      {/* 11 data columns, plus the row-actions column for editors. */}
       <Suspense
-        fallback={<DataTableSkeleton columnCount={canEdit ? 9 : 8} rowCount={10} filterCount={2} />}
+        fallback={
+          <DataTableSkeleton columnCount={canEdit ? 12 : 11} rowCount={10} filterCount={2} />
+        }
       >
         <OrganizationsListing />
       </Suspense>

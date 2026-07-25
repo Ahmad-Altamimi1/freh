@@ -1,5 +1,6 @@
 import type { FilterOperator, JoinOperator } from '@/types/data-table';
 import type { RelativeDateToken } from '@/lib/filter-columns';
+import type { TermRemainingFilter } from '../lib/term';
 
 /**
  * Arabic vocabulary for the organizations feature.
@@ -67,6 +68,20 @@ export const RELATIVE_DATE_LABELS: Record<RelativeDateToken, string> = {
   thisYear: 'هذه السنة'
 };
 
+/** Arabic labels for the term-ending-soon page's "time remaining" tabs and column. */
+export const ORGANIZATION_TERM_BUCKET_LABELS: Record<TermRemainingFilter, string> = {
+  all: 'الكل',
+  expired: 'منتهية',
+  lt_2mo: 'أقل من شهرين',
+  lt_3mo: 'أقل من 3 أشهر',
+  lt_6mo: 'أقل من 6 أشهر',
+  lt_1yr: 'أقل من سنة',
+  gt_1yr: 'أكثر من سنة'
+};
+
+/** Column header for the synthetic "remaining time" column — not a real DB field, so it lives outside `ORGANIZATION_FIELD_LABELS`. */
+export const ORGANIZATION_REMAINING_TIME_COLUMN_LABEL = 'الوقت المتبقي';
+
 /** UI strings, grouped by where they appear. */
 export const ORGANIZATION_LABELS = {
   entity: {
@@ -79,7 +94,9 @@ export const ORGANIZATION_LABELS = {
     reportTitle: 'التقارير',
     reportDescription: 'ملخص وإحصاءات مبنية على التصفية الحالية.',
     importTitle: 'استيراد البيانات',
-    importDescription: 'رفع ملف إكسل وتحديث السجل.'
+    importDescription: 'رفع ملف إكسل وتحديث السجل.',
+    endingSoonTitle: 'قرب انتهاء الدورة',
+    endingSoonDescription: 'الجمعيات التي تقترب دوراتها من الانتهاء، مصنّفة حسب الوقت المتبقي.'
   },
   table: {
     search: 'ابحث في السجل…',

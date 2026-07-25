@@ -1,6 +1,11 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { getOrganizationFacets, getOrganizationReport, getOrganizations } from './service';
+import {
+  getOrganizationFacets,
+  getOrganizationReport,
+  getOrganizations,
+  getOrganizationTermBucketCounts
+} from './service';
 import type { OrganizationFilters } from './types';
 
 /**
@@ -15,7 +20,9 @@ export const organizationKeys = {
   lists: () => [...organizationKeys.all, 'list'] as const,
   list: (filters: OrganizationFilters) => [...organizationKeys.lists(), filters] as const,
   facets: (filters: OrganizationFilters) => [...organizationKeys.all, 'facets', filters] as const,
-  report: (filters: OrganizationFilters) => [...organizationKeys.all, 'report', filters] as const
+  report: (filters: OrganizationFilters) => [...organizationKeys.all, 'report', filters] as const,
+  termBucketCounts: (filters: OrganizationFilters) =>
+    [...organizationKeys.all, 'term-bucket-counts', filters] as const
 };
 
 export const organizationsQueryOptions = (filters: OrganizationFilters) =>
@@ -41,4 +48,11 @@ export const organizationReportQueryOptions = (filters: OrganizationFilters) =>
   queryOptions({
     queryKey: organizationKeys.report(filters),
     queryFn: () => getOrganizationReport(filters)
+  });
+
+/** Backs the time-remaining tabs on the term-ending-soon page. */
+export const organizationTermBucketCountsQueryOptions = (filters: OrganizationFilters) =>
+  queryOptions({
+    queryKey: organizationKeys.termBucketCounts(filters),
+    queryFn: () => getOrganizationTermBucketCounts(filters)
   });

@@ -7,6 +7,7 @@ import {
 } from 'nuqs/server';
 
 import { getFiltersStateParser, getSortingStateParser } from '@/lib/parsers';
+import { TERM_REMAINING_FILTER_VALUES } from '../lib/term';
 import type { Organization } from './types';
 
 /**
@@ -73,3 +74,30 @@ export const organizationsSearchParamsCache = createSearchParamsCache(organizati
 
 /** Builds a URL carrying the current filter state — used for the report link. */
 export const serializeOrganizationsParams = createSerializer(organizationsSearchParams);
+
+/**
+ * Search params for the term-ending-soon page.
+ *
+ * Extends the main table's bundle with one more param — the same q/filter
+ * plumbing, plus which "time remaining" tab is active — rather than a separate
+ * definition, so the two pages can never drift on how the shared params parse.
+ *
+ * `sort` is overridden rather than inherited: this page's table defaults to
+ * sorting by `termEnd` (soonest first), not `name`. The client table component
+ * must default its own `sort` parser to the exact same value — if the two ever
+ * disagreed, the server would prefetch one query key and the client would read
+ * a different one, and nuqs would detect the server/client mismatch and rewrite
+ * the URL during the first client render, which is what a "Cannot update a
+ * component while rendering a different component" warning turned out to be.
+ */
+export const organizationsEndingSoonSearchParams = {
+  ...organizationsSearchParams,
+  sort: getSortingStateParser<Organization>(new Set(ORGANIZATION_COLUMN_IDS)).withDefault([
+    { id: 'termEnd', desc: false }
+  ]),
+  remaining: parseAsStringEnum([...TERM_REMAINING_FILTER_VALUES]).withDefault('all')
+};
+
+export const organizationsEndingSoonSearchParamsCache = createSearchParamsCache(
+  organizationsEndingSoonSearchParams
+);

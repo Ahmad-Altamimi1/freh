@@ -1,4 +1,5 @@
 import type { OrganizationRow } from '@/db/schema/organizations';
+import type { TermRemainingFilter } from '../lib/term';
 import type { ExtendedColumnFilter, ExtendedColumnSort, JoinOperator } from '@/types/data-table';
 
 /**
@@ -21,6 +22,9 @@ export type OrganizationFilters = {
   q?: string;
   filters?: ExtendedColumnFilter<Organization>[];
   joinOperator?: JoinOperator;
+  /** Scopes to organizations whose `term_end` falls in this bucket. Omitted entirely
+   *  on the main listing — only the "nearing term end" page ever sets this. */
+  remainingBucket?: TermRemainingFilter;
 };
 
 export type OrganizationsResponse = {
@@ -34,6 +38,21 @@ export type OrganizationsResponse = {
 export type OrganizationFacets = {
   districts: { value: string; count: number }[];
   classifications: { value: string; count: number }[];
+};
+
+/**
+ * Counts backing the "time remaining" tabs on the term-ending-soon page.
+ * `all` is every organization with a `term_end` set — not every organization —
+ * since a row with no term to speak of isn't part of what that page describes.
+ */
+export type OrganizationTermBucketCounts = {
+  all: number;
+  expired: number;
+  lt_2mo: number;
+  lt_3mo: number;
+  lt_6mo: number;
+  lt_1yr: number;
+  gt_1yr: number;
 };
 
 export type OrganizationReport = {

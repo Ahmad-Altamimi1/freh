@@ -11,8 +11,14 @@ import * as schema from './schema';
  *    invocation borrows a connection instead of opening its own.
  *  - `prepare: false` is required with that pooler — prepared statements are
  *    not supported in transaction mode.
- *  - `max: 1` keeps a single connection per instance; scaling happens by
- *    running more instances, not more sockets per instance.
+ *  - `max` must be > 1. A single request fans out concurrent queries with
+ *    `Promise.all` (the listing runs its rows + count together; the facets and
+ *    the report do the same). With `max: 1` postgres-js pipelines those onto one
+ *    socket, and Supabase's transaction pooler cancels the pipelined statement
+ *    with `57014 statement timeout` — which surfaces as a page that hangs on its
+ *    loading skeleton forever. A small pool lets each concurrent query take its
+ *    own pooled connection. Keep it modest so that instances × max stays well
+ *    under the pooler's connection ceiling.
  *
  * This client connects as the Postgres owner and therefore BYPASSES Row Level
  * Security. Every query here is trusted server code — do your authorization
@@ -31,7 +37,7 @@ const globalForDb = globalThis as unknown as {
 function getClient() {
   if (!globalForDb.postgresClient) {
     globalForDb.postgresClient = postgres(getServerEnv().DATABASE_URL, {
-      max: 1,
+      max: 10,
       prepare: false
     });
   }

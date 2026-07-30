@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldLabel, FieldSeparator } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -98,7 +98,8 @@ export function OrganizationFormSheet({
       termStart: organization?.termStart ?? '',
       termLength: organization?.termLength ?? '',
       directorName: organization?.directorName ?? '',
-      mobile: organization?.mobile ?? ''
+      mobile: organization?.mobile ?? '',
+      members: organization?.members ?? []
     } as OrganizationFormValues,
     validators: { onSubmit: organizationFormSchema },
     onSubmit: async ({ value }) => {
@@ -128,7 +129,8 @@ export function OrganizationFormSheet({
       termStart: organization?.termStart ?? '',
       termLength: organization?.termLength ?? '',
       directorName: organization?.directorName ?? '',
-      mobile: organization?.mobile ?? ''
+      mobile: organization?.mobile ?? '',
+      members: organization?.members ?? []
     } as OrganizationFormValues);
     // `form` is stable; re-running on it would reset mid-edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,6 +145,29 @@ export function OrganizationFormSheet({
   // write layer uses.
   const termEnd = useStore(form.store, (state) =>
     calculateTermEnd(state.values.termStart, state.values.termLength)
+  );
+
+  const members = useStore(form.store, (state) => state.values.members);
+
+  const addMember = React.useCallback(() => {
+    const next = [...members, { name: '', nationalId: '', mobile: '', jobTitle: '' }];
+    form.setFieldValue('members', next);
+  }, [form, members]);
+
+  const removeMember = React.useCallback(
+    (index: number) => {
+      const next = members.filter((_, i) => i !== index);
+      form.setFieldValue('members', next);
+    },
+    [form, members]
+  );
+
+  const updateMember = React.useCallback(
+    (index: number, field: string, value: string) => {
+      const next = members.map((m, i) => (i === index ? { ...m, [field]: value } : m));
+      form.setFieldValue('members', next);
+    },
+    [form, members]
   );
 
   return (
@@ -242,6 +267,88 @@ export function OrganizationFormSheet({
                 placeholder='0790000000'
                 description={LABELS.mobileHint}
               />
+
+              <FieldSeparator>{LABELS.memberSectionTitle}</FieldSeparator>
+
+              <div className='space-y-4'>
+                {members.map((member, i) => (
+                  <div key={i} className='rounded-lg border border-white/[0.06] bg-[#141A24] p-4'>
+                    <div className='mb-3 flex items-center justify-between'>
+                      <span className='text-sm font-medium text-[#9CA3AF]'>
+                        {LABELS.memberSectionTitle} {i + 1}
+                      </span>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => removeMember(i)}
+                        className='text-red-400 hover:text-red-300'
+                      >
+                        <Icons.trash className='size-3.5' />
+                        {LABELS.removeMember}
+                      </Button>
+                    </div>
+                    <div className='space-y-3'>
+                      <Field>
+                        <FieldLabel htmlFor={`member-name-${i}`}>{LABELS.memberName}</FieldLabel>
+                        <Input
+                          id={`member-name-${i}`}
+                          value={member.name}
+                          onChange={(e) => updateMember(i, 'name', e.target.value)}
+                          placeholder='الاسم الرباعي'
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor={`member-national-id-${i}`}>
+                          {LABELS.memberNationalId}
+                        </FieldLabel>
+                        <Input
+                          id={`member-national-id-${i}`}
+                          dir='ltr'
+                          value={member.nationalId}
+                          onChange={(e) => updateMember(i, 'nationalId', e.target.value)}
+                          placeholder='420000000'
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor={`member-mobile-${i}`}>
+                          {LABELS.memberMobile}
+                        </FieldLabel>
+                        <Input
+                          id={`member-mobile-${i}`}
+                          dir='ltr'
+                          inputMode='numeric'
+                          value={member.mobile}
+                          onChange={(e) => updateMember(i, 'mobile', e.target.value)}
+                          placeholder='0790000000'
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor={`member-job-title-${i}`}>
+                          {LABELS.memberJobTitle}
+                        </FieldLabel>
+                        <Input
+                          id={`member-job-title-${i}`}
+                          value={member.jobTitle}
+                          onChange={(e) => updateMember(i, 'jobTitle', e.target.value)}
+                          placeholder='المسمى الوظيفي'
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={addMember}
+                  className='w-full'
+                >
+                  <Icons.add className='size-4' />
+                  {LABELS.addMember}
+                </Button>
+              </div>
             </form.Form>
           </form.AppForm>
         </div>

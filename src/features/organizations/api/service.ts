@@ -23,7 +23,12 @@ import { auditLog } from '@/lib/audit';
 import { hasAnyRole } from '@/lib/auth/roles';
 import { requireUser } from '@/lib/auth/session';
 import { buildFilterWhere, escapeLike, type FilterableColumns } from '@/lib/filter-columns';
+import { MEMBER_REQUIRED_FIELDS, parseMembersWorkbook } from './workbook';
 import type {
+  ImportIssue,
+  ImportPreview,
+  ImportResult,
+  Member,
   Organization,
   OrganizationFacets,
   OrganizationFilters,
@@ -79,6 +84,7 @@ const SELECT_COLUMNS = {
   termLength: organizations.termLength,
   directorName: organizations.directorName,
   mobile: organizations.mobile,
+  members: organizations.members,
   serialNo: organizations.serialNo,
   createdAt: organizations.createdAt,
   updatedAt: organizations.updatedAt
@@ -396,7 +402,8 @@ function toWriteValues(input: OrganizationMutationPayload) {
     // on `OrganizationMutationPayload`, which has no `termEnd` field at all.
     termEnd: calculateTermEnd(input.termStart, input.termLength) || null,
     directorName: blankToNull(input.directorName),
-    mobile: blankToNull(input.mobile)
+    mobile: blankToNull(input.mobile),
+    members: input.members
   };
 
   return {
@@ -496,4 +503,164 @@ export async function deleteOrganization(id: string): Promise<{ id: string }> {
   });
 
   return { id: deleted.id };
+}
+
+// ============================================================
+// Members Management
+// ============================================================
+
+export async function updateOrganizationMembers(
+  orgId: string,
+  members: Member[]
+): Promise<Organization> {
+  const user = await requireEditor();
+
+  const [updated] = await getDb()
+    .update(organizations)
+    .set({ members, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId))
+    .returning(SELECT_COLUMNS);
+
+  if (!updated) throw new Error('الجمعية غير موجودة.');
+
+  await auditLog({
+    action: 'UPDATE',
+    entityType: 'organization',
+    entityId: orgId,
+    actor: { id: user.id, email: user.email, type: 'user' },
+    metadata: { membersUpdated: members.length }
+  });
+
+  return updated;
+}
+
+// ============================================================
+// Members Import
+// ============================================================
+
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/** Reads the uploaded file out of the form, rejecting anything unusable. */
+async function readUpload(formData: FormData): Promise<{ file: File; buffer: ArrayBuffer }> {
+  const file = formData.get('file');
+
+  if (!(file instanceof File)) {
+    throw new Error('لم يتم إرفاق أي ملف.');
+  }
+  if (file.size === 0) {
+    throw new Error('الملف فارغ.');
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error('حجم الملف يتجاوز الحد المسموح (٥ ميغابايت).');
+  }
+  if (!file.name.toLowerCase().endsWith('.xlsx') && file.type !== XLSX_MIME) {
+    throw new Error('صيغة الملف غير مدعومة — المطلوب ملف .xlsx');
+  }
+
+  return { file, buffer: await file.arrayBuffer() };
+}
+
+export async function previewMembersImport(formData: FormData): Promise<ImportPreview> {
+  const user = await requireUser();
+  if (!hasAnyRole(user, ['admin'])) {
+    throw new Error('غير مصرح لك باستيراد البيانات.');
+  }
+
+  const { file, buffer } = await readUpload(formData);
+  const parsed = await parseMembersWorkbook(buffer);
+
+  return {
+    fileName: file.name,
+    detectedHeaders: parsed.detectedHeaders,
+    mapping: parsed.mapping,
+    unmappedHeaders: parsed.unmappedHeaders,
+    missingRequired: parsed.missingRequired,
+    rowCount: parsed.rows.length,
+    sampleRows: parsed.rows.slice(0, 10).map((row) => ({
+      name: row.name,
+      nationalId: row.nationalId ?? '',
+      mobile: row.mobile ?? '',
+      jobTitle: row.jobTitle ?? ''
+    }))
+  };
+}
+
+export async function importMembers(
+  organizationId: string,
+  formData: FormData
+): Promise<ImportResult> {
+  const user = await requireUser();
+  if (!hasAnyRole(user, ['admin'])) {
+    throw new Error('غير مصرح لك باستيراد البيانات.');
+  }
+
+  const { file, buffer } = await readUpload(formData);
+  const parsed = await parseMembersWorkbook(buffer);
+
+  if (parsed.missingRequired.length > 0) {
+    throw new Error(
+      `الملف تنقصه أعمدة مطلوبة: ${parsed.missingRequired.join('، ')}. الأعمدة المطلوبة هي ${MEMBER_REQUIRED_FIELDS.join('، ')}.`
+    );
+  }
+
+  const errors: ImportIssue[] = [...parsed.errors];
+  const warnings: ImportIssue[] = [...parsed.warnings];
+  const valid: Member[] = [];
+
+  for (const row of parsed.rows) {
+    if (!row.name.trim()) {
+      errors.push({ row: row.rowNumber, column: 'name', message: 'اسم العضو مطلوب' });
+      continue;
+    }
+    valid.push({
+      name: row.name.trim(),
+      nationalId: row.nationalId.trim(),
+      mobile: row.mobile.trim(),
+      jobTitle: row.jobTitle.trim()
+    });
+  }
+
+  if (valid.length === 0) {
+    throw new Error('الملف لا يحتوي على أعضاء صالحين للاستيراد.');
+  }
+
+  const db = getDb();
+
+  const [existing] = await db
+    .select({ members: organizations.members })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+
+  if (!existing) throw new Error('الجمعية غير موجودة.');
+
+  const currentMembers: Member[] = (existing.members as Member[]) ?? [];
+  const updatedMembers = [...currentMembers, ...valid];
+
+  await db
+    .update(organizations)
+    .set({ members: updatedMembers, updatedAt: new Date() })
+    .where(eq(organizations.id, organizationId));
+
+  await auditLog({
+    action: 'UPDATE',
+    entityType: 'organization',
+    entityId: organizationId,
+    actor: { id: user.id, email: user.email, type: 'user' },
+    metadata: {
+      membersImported: valid.length,
+      totalMembers: updatedMembers.length
+    }
+  });
+
+  return {
+    fileName: file.name,
+    total: parsed.rows.length,
+    inserted: valid.length,
+    updated: 0,
+    skipped: parsed.rows.length - valid.length,
+    warnings,
+    errors
+  };
 }

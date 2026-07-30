@@ -43,6 +43,13 @@
       "when": 1784937672815,
       "tag": "0005_notifications_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785437839461,
+      "tag": "0006_wise_bastion",
+      "breakpoints": true
     }
   ]
 }

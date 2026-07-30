@@ -3,12 +3,20 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid
 } from 'drizzle-orm/pg-core';
+
+export type Member = {
+  name: string;
+  nationalId: string;
+  mobile: string;
+  jobTitle: string;
+};
 
 /**
  * Registry of cultural societies (الجمعيات الثقافية).
@@ -74,6 +82,9 @@ export const organizations = pgTable(
 
     /** Stored as text to preserve the leading zero. */
     mobile: text('mobile'),
+
+    /** Board members stored as JSONB array. */
+    members: jsonb('members').$type<Member[]>().default([]).notNull(),
 
     /** Row number from the source export, kept for reconciliation. */
     serialNo: integer('serial_no'),

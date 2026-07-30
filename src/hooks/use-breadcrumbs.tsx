@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
 type BreadcrumbItem = {
@@ -28,17 +28,37 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
 type BreadcrumbOverrideContextType = {
   title: string | null;
   setTitle: Dispatch<SetStateAction<string | null>>;
+  segmentOverrides: Record<number, string>;
+  setSegmentOverride: (index: number, title: string | null) => void;
 };
 
 const BreadcrumbOverrideContext = createContext<BreadcrumbOverrideContextType>({
   title: null,
-  setTitle: () => {}
+  setTitle: () => {},
+  segmentOverrides: {},
+  setSegmentOverride: () => {}
 });
 
 export function BreadcrumbOverrideProvider({ children }: { children: ReactNode }) {
   const [title, setTitle] = useState<string | null>(null);
+  const [segmentOverrides, setSegmentOverrides] = useState<Record<number, string>>({});
+
+  const setSegmentOverride = useCallback((index: number, val: string | null) => {
+    setSegmentOverrides((prev) => {
+      const next = { ...prev };
+      if (val === null) {
+        delete next[index];
+      } else {
+        next[index] = val;
+      }
+      return next;
+    });
+  }, []);
+
   return (
-    <BreadcrumbOverrideContext.Provider value={{ title, setTitle }}>
+    <BreadcrumbOverrideContext.Provider
+      value={{ title, setTitle, segmentOverrides, setSegmentOverride }}
+    >
       {children}
     </BreadcrumbOverrideContext.Provider>
   );
@@ -50,7 +70,7 @@ export function useBreadcrumbOverride() {
 
 export function useBreadcrumbs() {
   const pathname = usePathname();
-  const { title: overrideTitle } = useContext(BreadcrumbOverrideContext);
+  const { title: overrideTitle, segmentOverrides } = useContext(BreadcrumbOverrideContext);
 
   const breadcrumbs = useMemo(() => {
     if (routeMapping[pathname]) {
@@ -61,6 +81,12 @@ export function useBreadcrumbs() {
     return segments.map((segment, index) => {
       const path = `/${segments.slice(0, index + 1).join('/')}`;
       const isLast = index === segments.length - 1;
+
+      const explicitOverride = segmentOverrides[index];
+      if (explicitOverride) {
+        return { title: explicitOverride, link: path };
+      }
+
       return {
         title:
           isLast && overrideTitle
@@ -69,7 +95,7 @@ export function useBreadcrumbs() {
         link: path
       };
     });
-  }, [pathname, overrideTitle]);
+  }, [pathname, overrideTitle, segmentOverrides]);
 
   return breadcrumbs;
 }

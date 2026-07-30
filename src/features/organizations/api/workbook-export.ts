@@ -191,3 +191,49 @@ export async function buildOrganizationsTemplate(): Promise<ArrayBuffer> {
 
   return (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
 }
+
+const MEMBER_COLUMNS = [
+  { header: 'الاسم', key: 'name', width: 40 },
+  { header: 'الرقم الوطني', key: 'nationalId', width: 16 },
+  { header: 'رقم الهاتف', key: 'mobile', width: 15 },
+  { header: 'المسمى الوظيفي', key: 'jobTitle', width: 24 }
+] as const;
+
+export async function buildMembersImportTemplate(): Promise<ArrayBuffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'سجل الجمعيات';
+
+  const sheet = workbook.addWorksheet('الأعضاء', { views: [{ rightToLeft: true }] });
+  sheet.columns = MEMBER_COLUMNS.map((column) => ({
+    header: column.header,
+    key: column.key,
+    width: column.width
+  }));
+
+  for (const key of ['mobile', 'nationalId'] as const) {
+    const column = sheet.getColumn(key);
+    column.numFmt = '@';
+    column.alignment = { horizontal: 'left' };
+  }
+
+  sheet.addRow({
+    name: 'عضو مثال',
+    nationalId: '420000000',
+    mobile: '0790000000',
+    jobTitle: 'رئيس الجمعية'
+  });
+
+  applyHeaderStyling(sheet, 1);
+
+  const notes = workbook.addWorksheet('تعليمات', { views: [{ rightToLeft: true }] });
+  notes.columns = [{ header: 'ملاحظات', key: 'note', width: 90 }];
+  notes.getRow(1).font = { bold: true };
+  [
+    'الصف الأول يحتوي أسماء الأعمدة — لا تحذفه.',
+    'الصف الثاني مثال توضيحي — احذفه قبل الاستيراد أو استبدله ببياناتك.',
+    'العمود المطلوب: «الاسم». باقي الأعمدة اختيارية.',
+    'رقم الهاتف بصيغة 07XXXXXXXX — احرص على بقاء الصفر في البداية (العمود منسّق كنص).'
+  ].forEach((note) => notes.addRow({ note }));
+
+  return (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
+}

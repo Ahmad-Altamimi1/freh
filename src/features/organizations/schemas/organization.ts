@@ -49,6 +49,15 @@ export type OrganizationImportRow = z.infer<typeof organizationImportRowSchema>;
  * well-formed number, correcting that row's director name would be impossible
  * without also "fixing" a number nobody can verify.
  */
+export const memberSchema = z.object({
+  name: z.string().trim().min(1, 'الاسم مطلوب'),
+  nationalId: z.string().trim().max(32),
+  mobile: z.string().trim().max(32),
+  jobTitle: z.string().trim().max(100)
+});
+
+export type MemberFormValues = z.infer<typeof memberSchema>;
+
 export const organizationFormSchema = z.object({
   name: z.string().trim().min(2, 'اسم الجمعية مطلوب').max(300, 'اسم الجمعية طويل جدًا'),
   district: z.string().trim().min(1, 'اللواء مطلوب').max(120),
@@ -88,7 +97,8 @@ export const organizationFormSchema = z.object({
     .refine(
       (value) => value === '' || /^\d{9,15}$/.test(value),
       'رقم الهاتف يجب أن يتكون من أرقام فقط (مثال: 0790000000)'
-    )
+    ),
+  members: z.array(memberSchema)
 });
 
 export type OrganizationFormValues = z.infer<typeof organizationFormSchema>;

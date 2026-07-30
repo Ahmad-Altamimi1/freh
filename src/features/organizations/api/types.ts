@@ -2,6 +2,13 @@ import type { OrganizationRow } from '@/db/schema/organizations';
 import type { TermRemainingFilter } from '../lib/term';
 import type { ExtendedColumnFilter, ExtendedColumnSort, JoinOperator } from '@/types/data-table';
 
+export type Member = {
+  name: string;
+  nationalId: string;
+  mobile: string;
+  jobTitle: string;
+};
+
 /**
  * An organization as the UI sees it.
  *
@@ -92,6 +99,8 @@ export type OrganizationMutationPayload = {
   termLength: number | '';
   directorName: string;
   mobile: string;
+  /** Board members. */
+  members: Member[];
 };
 
 /** One problem found in one row of an uploaded file. */

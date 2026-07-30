@@ -2,8 +2,13 @@ import { mutationOptions } from '@tanstack/react-query';
 
 import { getQueryClient } from '@/lib/query-client';
 import { organizationKeys } from './queries';
-import { createOrganization, deleteOrganization, updateOrganization } from './service';
-import type { OrganizationMutationPayload } from './types';
+import {
+  createOrganization,
+  deleteOrganization,
+  updateOrganization,
+  updateOrganizationMembers
+} from './service';
+import type { Member, OrganizationMutationPayload } from './types';
 
 /**
  * Mutation options for the organizations registry.
@@ -31,6 +36,14 @@ export const updateOrganizationMutation = mutationOptions({
 
 export const deleteOrganizationMutation = mutationOptions({
   mutationFn: (id: string) => deleteOrganization(id),
+  onSuccess: () => {
+    getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+  }
+});
+
+export const updateOrganizationMembersMutation = mutationOptions({
+  mutationFn: ({ id, members }: { id: string; members: Member[] }) =>
+    updateOrganizationMembers(id, members),
   onSuccess: () => {
     getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
   }

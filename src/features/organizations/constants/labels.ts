@@ -132,7 +132,8 @@ export const ORGANIZATION_LABELS = {
     create: 'إضافة جمعية',
     edit: 'تعديل',
     delete: 'حذف',
-    rowActions: 'إجراءات'
+    rowActions: 'إجراءات',
+    importMembers: 'استيراد أعضاء من إكسل'
   },
   form: {
     createTitle: 'إضافة جمعية',
@@ -151,7 +152,25 @@ export const ORGANIZATION_LABELS = {
     created: 'تمت إضافة الجمعية.',
     updated: 'تم حفظ التغييرات.',
     createFailed: 'تعذّرت إضافة الجمعية.',
-    updateFailed: 'تعذّر حفظ التغييرات.'
+    updateFailed: 'تعذّر حفظ التغييرات.',
+    memberSectionTitle: 'أعضاء الجمعية',
+    memberName: 'الاسم',
+    memberNationalId: 'الرقم الوطني',
+    memberMobile: 'رقم الهاتف',
+    memberJobTitle: 'المسمى الوظيفي',
+    addMember: 'إضافة عضو',
+    removeMember: 'حذف',
+    memberNameRequired: 'اسم العضو مطلوب',
+    memberDuplicateNationalId: 'يوجد عضو بنفس الرقم الوطني بالفعل',
+    membersImportSuccess: 'تم استيراد الأعضاء بنجاح',
+    membersImportFailed: 'فشل استيراد الأعضاء',
+    memberEditTitle: 'تعديل بيانات العضو',
+    memberEditSave: 'حفظ',
+    memberEditCancel: 'إلغاء',
+    deleteMemberConfirm: 'حذف العضو',
+    deleteMemberDescription: 'سيتم حذف هذا العضو من قائمة الأعضاء.',
+    deleteSelected: 'حذف المحدد',
+    selectAll: 'تحديد الكل'
   },
   delete: {
     title: 'حذف الجمعية؟',
@@ -175,6 +194,20 @@ export const ORGANIZATION_LABELS = {
     noFilters: 'لا توجد معايير — التقرير يشمل السجل بالكامل.',
     generatedAt: 'تاريخ إنشاء التقرير',
     unclassified: 'غير مصنّف'
+  },
+  members: {
+    sectionTitle: 'أعضاء الجمعية',
+    noMembers: 'لا يوجد أعضاء',
+    nationalId: 'الرقم الوطني',
+    mobile: 'رقم الهاتف',
+    jobTitle: 'المسمى الوظيفي',
+    importTitle: 'استيراد أعضاء الجمعية',
+    importDescription: 'رفع ملف إكسل يحتوي على قائمة الأعضاء لإضافتهم إلى الجمعية.',
+    importButton: 'استيراد أعضاء',
+    importSuccess: 'تم استيراد الأعضاء بنجاح.',
+    importFailed: 'تعذّر استيراد الأعضاء.',
+    importAnother: 'استيراد ملف آخر',
+    backToDetail: 'العودة إلى بيانات الجمعية'
   },
   import: {
     steps: {

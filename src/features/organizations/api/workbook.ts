@@ -35,6 +35,9 @@ export type OrganizationImportField =
   | 'mobile'
   | 'serialNo';
 
+/** The fields a member import can populate. */
+export type MemberImportField = 'name' | 'nationalId' | 'mobile' | 'jobTitle';
+
 /**
  * Recognised header spellings, normalized for lookup.
  *
@@ -332,4 +335,127 @@ export async function parseOrganizationsWorkbook(buffer: ArrayBuffer): Promise<P
   });
 
   return { detectedHeaders, mapping, unmappedHeaders, missingRequired, rows, warnings, errors };
+}
+
+// ============================================================
+// Members Workbook
+// ============================================================
+
+const MEMBER_HEADER_ALIASES: Record<string, MemberImportField> = {};
+
+function registerMemberAliases(field: MemberImportField, aliases: string[]): void {
+  for (const alias of aliases) {
+    MEMBER_HEADER_ALIASES[normalizeHeader(alias)] = field;
+  }
+}
+
+registerMemberAliases('name', ['الاسم', 'اسم العضو', 'name']);
+registerMemberAliases('nationalId', ['الرقم الوطني', 'nationalId']);
+registerMemberAliases('mobile', ['رقم الهاتف', 'الهاتف', 'الجوال', 'mobile']);
+registerMemberAliases('jobTitle', ['المسمى الوظيفي', 'الوظيفة', 'jobTitle', 'job title']);
+
+export const MEMBER_REQUIRED_FIELDS: MemberImportField[] = ['name'];
+
+export type ParsedMemberRow = {
+  rowNumber: number;
+  name: string;
+  nationalId: string;
+  mobile: string;
+  jobTitle: string;
+};
+
+export type ParsedMembersWorkbook = {
+  detectedHeaders: string[];
+  mapping: Record<string, MemberImportField>;
+  unmappedHeaders: string[];
+  missingRequired: MemberImportField[];
+  rows: ParsedMemberRow[];
+  errors: ImportIssue[];
+  warnings: ImportIssue[];
+};
+
+export async function parseMembersWorkbook(buffer: ArrayBuffer): Promise<ParsedMembersWorkbook> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
+    throw new Error('الملف لا يحتوي على أي ورقة عمل.');
+  }
+
+  const headerRow = worksheet.getRow(1);
+  const detectedHeaders: string[] = [];
+  const mapping: Record<string, MemberImportField> = {};
+  const unmappedHeaders: string[] = [];
+  const columnByField = new Map<MemberImportField, number>();
+
+  headerRow.eachCell({ includeEmpty: false }, (cell, columnNumber) => {
+    const header = cellText(cell);
+    if (!header) return;
+
+    detectedHeaders.push(header);
+
+    const key = normalizeHeader(header);
+    const field = MEMBER_HEADER_ALIASES[key];
+
+    if (!field) {
+      unmappedHeaders.push(header);
+      return;
+    }
+
+    if (!columnByField.has(field)) {
+      columnByField.set(field, columnNumber);
+      mapping[header] = field;
+    }
+  });
+
+  const missingRequired = MEMBER_REQUIRED_FIELDS.filter((field) => !columnByField.has(field));
+
+  const rows: ParsedMemberRow[] = [];
+  const warnings: ImportIssue[] = [];
+  const errors: ImportIssue[] = [];
+
+  if (missingRequired.length > 0) {
+    return { detectedHeaders, mapping, unmappedHeaders, missingRequired, rows, errors, warnings };
+  }
+
+  const cellFor = (row: ExcelJS.Row, field: MemberImportField) => {
+    const column = columnByField.get(field);
+    return column ? row.getCell(column) : undefined;
+  };
+  const textFor = (row: ExcelJS.Row, field: MemberImportField) => {
+    const cell = cellFor(row, field);
+    return cell ? cellText(cell) : '';
+  };
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+
+    const name = textFor(row, 'name');
+    if (!name) return;
+
+    const nationalIdCell = cellFor(row, 'nationalId');
+    const nationalId = nationalIdCell ? normalizeDigits(cellText(nationalIdCell)) : '';
+
+    const mobileCell = cellFor(row, 'mobile');
+    const mobile = mobileCell ? (toMobile(mobileCell) ?? '') : '';
+
+    if (mobile && !JORDAN_MOBILE_PATTERN.test(mobile)) {
+      warnings.push({
+        row: rowNumber,
+        column: 'mobile',
+        message: `رقم هاتف غير مطابق للصيغة (07XXXXXXXX): «${mobile}» — تم حفظه كما هو`
+      });
+    }
+
+    rows.push({
+      rowNumber,
+      name,
+      nationalId,
+      mobile,
+      jobTitle: textFor(row, 'jobTitle')
+    });
+  });
+
+  return { detectedHeaders, mapping, unmappedHeaders, missingRequired, rows, errors, warnings };
 }

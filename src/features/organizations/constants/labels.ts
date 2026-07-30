@@ -96,7 +96,9 @@ export const ORGANIZATION_LABELS = {
     importTitle: 'استيراد البيانات',
     importDescription: 'رفع ملف إكسل وتحديث السجل.',
     endingSoonTitle: 'قرب انتهاء الدورة',
-    endingSoonDescription: 'الجمعيات التي تقترب دوراتها من الانتهاء، مصنّفة حسب الوقت المتبقي.'
+    endingSoonDescription: 'الجمعيات التي تقترب دوراتها من الانتهاء، مصنّفة حسب الوقت المتبقي.',
+    detailTitle: 'بيانات الجمعية',
+    detailDescription: 'عرض تفاصيل الجمعية.'
   },
   table: {
     search: 'ابحث في السجل…',
@@ -125,6 +127,7 @@ export const ORGANIZATION_LABELS = {
     print: 'طباعة',
     import: 'استيراد',
     backToList: 'العودة إلى السجل',
+    view: 'عرض',
     openMenu: 'فتح القائمة',
     create: 'إضافة جمعية',
     edit: 'تعديل',

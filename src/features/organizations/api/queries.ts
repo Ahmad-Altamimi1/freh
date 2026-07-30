@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import {
+  getOrganizationById,
   getOrganizationFacets,
   getOrganizationReport,
   getOrganizations,
@@ -19,6 +20,7 @@ export const organizationKeys = {
   all: ['organizations'] as const,
   lists: () => [...organizationKeys.all, 'list'] as const,
   list: (filters: OrganizationFilters) => [...organizationKeys.lists(), filters] as const,
+  detail: (id: string) => [...organizationKeys.all, 'detail', id] as const,
   facets: (filters: OrganizationFilters) => [...organizationKeys.all, 'facets', filters] as const,
   report: (filters: OrganizationFilters) => [...organizationKeys.all, 'report', filters] as const,
   termBucketCounts: (filters: OrganizationFilters) =>
@@ -29,6 +31,12 @@ export const organizationsQueryOptions = (filters: OrganizationFilters) =>
   queryOptions({
     queryKey: organizationKeys.list(filters),
     queryFn: () => getOrganizations(filters)
+  });
+
+export const organizationByIdOptions = (id: string) =>
+  queryOptions({
+    queryKey: organizationKeys.detail(id),
+    queryFn: () => getOrganizationById(id)
   });
 
 /**

@@ -188,6 +188,18 @@ export async function getAllOrganizations(filters: OrganizationFilters) {
  * Read from the data rather than a hardcoded list, so a value that appears in a
  * later import becomes filterable without a code change.
  */
+export async function getOrganizationById(id: string): Promise<Organization | null> {
+  await requireUser();
+
+  const [row] = await getDb()
+    .select(SELECT_COLUMNS)
+    .from(organizations)
+    .where(eq(organizations.id, id))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function getOrganizationFacets(
   filters: OrganizationFilters = {}
 ): Promise<OrganizationFacets> {

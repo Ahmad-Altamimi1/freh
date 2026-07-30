@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -26,6 +27,7 @@ interface CellActionProps {
 }
 
 export function CellAction({ data }: CellActionProps) {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -75,6 +77,10 @@ export function CellAction({ data }: CellActionProps) {
           <DropdownMenuGroup>
             <DropdownMenuLabel>{ORGANIZATION_LABELS.actions.rowActions}</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push(`/dashboard/organizations/${data.id}`)}>
+              <Icons.search className='size-4' />
+              {ORGANIZATION_LABELS.actions.view}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setEditOpen(true)}>
               <Icons.edit className='size-4' />
               {ORGANIZATION_LABELS.actions.edit}

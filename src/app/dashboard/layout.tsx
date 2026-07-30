@@ -5,6 +5,7 @@ import { InfoSidebar } from '@/components/layout/info-sidebar';
 import { SessionProvider } from '@/components/layout/session-provider';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { BreadcrumbOverrideProvider } from '@/hooks/use-breadcrumbs';
 import { requireUser, toSessionUser } from '@/lib/auth/session';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
@@ -36,11 +37,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
               the contextual info panel on the opposite one. */}
           <AppSidebar user={sessionUser} side='right' />
           <SidebarInset>
-            <Header />
-            <InfobarProvider defaultOpen={false}>
-              {children}
-              <InfoSidebar side='left' />
-            </InfobarProvider>
+            <BreadcrumbOverrideProvider>
+              <Header />
+              <InfobarProvider defaultOpen={false}>
+                {children}
+                <InfoSidebar side='left' />
+              </InfobarProvider>
+            </BreadcrumbOverrideProvider>
           </SidebarInset>
         </SidebarProvider>
       </KBar>

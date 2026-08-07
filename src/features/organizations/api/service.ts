@@ -373,6 +373,8 @@ export async function getOrganizationReport(
 
 /** Postgres unique-violation. */
 const UNIQUE_VIOLATION = '23505';
+/** Postgres foreign-key violation — raised since correspondences can reference an organization. */
+const FOREIGN_KEY_VIOLATION = '23503';
 
 async function requireEditor() {
   const user = await requireUser();
@@ -414,17 +416,25 @@ function toWriteValues(input: OrganizationMutationPayload) {
 }
 
 /**
- * Rethrows a unique-index violation as something a user can act on.
+ * Rethrows a write-constraint violation as something a user can act on.
  *
- * The index covers `(national_id_key, name_normalized)`, and the normalization
- * means the clash is often invisible in the raw text — "جمعية الشعلة" and
- * "جمعيه الشعله" collide. Saying which pair collided is the difference between
- * a fixable message and a mystery.
+ * Unique: the index covers `(national_id_key, name_normalized)`, and the
+ * normalization means the clash is often invisible in the raw text —
+ * "جمعية الشعلة" and "جمعيه الشعله" collide. Saying which pair collided is the
+ * difference between a fixable message and a mystery.
+ *
+ * Foreign key: raised on delete once another table (correspondences) can
+ * reference an organization — deleting one that still has correspondence
+ * pointing at it is rejected by Postgres rather than orphaning those rows.
  */
 function rethrowWriteError(error: unknown): never {
   if (typeof error === 'object' && error !== null && 'code' in error) {
-    if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
+    const code = (error as { code?: string }).code;
+    if (code === UNIQUE_VIOLATION) {
       throw new Error('توجد جمعية أخرى بنفس الاسم والرقم الوطني.');
+    }
+    if (code === FOREIGN_KEY_VIOLATION) {
+      throw new Error('لا يمكن حذف الجمعية لوجود مراسلات مرتبطة بها.');
     }
   }
   throw error;
@@ -487,10 +497,15 @@ export async function updateOrganization(
 export async function deleteOrganization(id: string): Promise<{ id: string }> {
   const user = await requireEditor();
 
-  const [deleted] = await getDb()
-    .delete(organizations)
-    .where(eq(organizations.id, id))
-    .returning({ id: organizations.id, name: organizations.name });
+  let deleted: { id: string; name: string } | undefined;
+  try {
+    [deleted] = await getDb()
+      .delete(organizations)
+      .where(eq(organizations.id, id))
+      .returning({ id: organizations.id, name: organizations.name });
+  } catch (error) {
+    rethrowWriteError(error);
+  }
 
   if (!deleted) throw new Error('الجمعية غير موجودة.');
 

@@ -13,3 +13,4 @@
 
 export * from './organizations';
 export * from './notifications';
+export * from './correspondences';

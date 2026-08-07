@@ -158,10 +158,10 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
         )}
       </div>
 
-      <div className='overflow-hidden rounded-xl border border-white/[0.06]'>
+      <div className='overflow-hidden rounded-xl border border-border'>
         <table className='w-full text-right text-sm'>
           <thead>
-            <tr className='border-b border-white/[0.06] bg-white/[0.03]'>
+            <tr className='border-b border-border bg-muted/50'>
               <th className='w-12 px-4 py-3'>
                 <button
                   type='button'
@@ -172,27 +172,27 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                   className={cn(
                     'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
                     allSelected
-                      ? 'border-indigo-500 bg-indigo-500 text-white'
-                      : 'border-white/20 hover:border-white/40'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border hover:border-foreground/50'
                   )}
                 >
                   {allSelected && <Icons.check className='size-3.5' />}
                 </button>
               </th>
-              <th className='px-4 py-3 font-medium text-[#9CA3AF]'>#</th>
-              <th className='px-4 py-3 font-medium text-[#9CA3AF]'>
+              <th className='px-4 py-3 font-medium text-muted-foreground'>#</th>
+              <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.form.memberName}
               </th>
-              <th className='px-4 py-3 font-medium text-[#9CA3AF]'>
+              <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.members.nationalId}
               </th>
-              <th className='px-4 py-3 font-medium text-[#9CA3AF]'>
+              <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.members.mobile}
               </th>
-              <th className='px-4 py-3 font-medium text-[#9CA3AF]'>
+              <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.members.jobTitle}
               </th>
-              <th className='w-24 px-4 py-3 font-medium text-[#9CA3AF]'>
+              <th className='w-24 px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.actions.rowActions}
               </th>
             </tr>
@@ -201,7 +201,7 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
             {members.map((member, i) => (
               <tr
                 key={i}
-                className='border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.02]'
+                className='border-b border-border/50 transition-colors last:border-0 hover:bg-muted/40'
               >
                 <td className='px-4 py-3'>
                   <button
@@ -213,16 +213,16 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                     className={cn(
                       'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
                       selected.has(i)
-                        ? 'border-indigo-500 bg-indigo-500 text-white'
-                        : 'border-white/20 hover:border-white/40'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-foreground/50'
                     )}
                   >
                     {selected.has(i) && <Icons.check className='size-3.5' />}
                   </button>
                 </td>
-                <td className='px-4 py-3.5 text-[#9CA3AF]'>{i + 1}</td>
-                <td className='px-4 py-3.5 font-medium text-white'>{member.name}</td>
-                <td className='px-4 py-3.5 text-white/80'>
+                <td className='px-4 py-3.5 text-muted-foreground'>{i + 1}</td>
+                <td className='px-4 py-3.5 font-medium text-foreground'>{member.name}</td>
+                <td className='px-4 py-3.5 text-muted-foreground'>
                   <span dir='ltr' className='tabular-nums'>
                     {member.nationalId || '—'}
                   </span>
@@ -232,22 +232,22 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                     <a
                       dir='ltr'
                       href={`tel:${member.mobile}`}
-                      className='tabular-nums text-white/80 transition-colors hover:text-indigo-400'
+                      className='tabular-nums text-muted-foreground transition-colors hover:text-foreground'
                     >
                       {member.mobile}
                     </a>
                   ) : (
-                    <span className='text-[#9CA3AF]'>—</span>
+                    <span className='text-muted-foreground'>—</span>
                   )}
                 </td>
-                <td className='px-4 py-3.5 text-white/80'>{member.jobTitle || '—'}</td>
+                <td className='px-4 py-3.5 text-muted-foreground'>{member.jobTitle || '—'}</td>
                 <td className='px-4 py-3.5'>
                   <div className='flex items-center gap-1'>
                     <Button
                       variant='ghost'
                       size='sm'
                       onClick={() => openEdit(i)}
-                      className='size-8 text-[#9CA3AF] hover:text-white'
+                      className='size-8 text-muted-foreground hover:text-foreground'
                     >
                       <Icons.edit className='size-3.5' />
                     </Button>
@@ -255,7 +255,7 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                       variant='ghost'
                       size='sm'
                       onClick={() => setDeleteIndex(i)}
-                      className='size-8 text-[#9CA3AF] hover:text-red-400'
+                      className='size-8 text-muted-foreground hover:text-destructive'
                     >
                       <Icons.trash className='size-3.5' />
                     </Button>
@@ -270,10 +270,10 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
   );
 
   const emptySection = members.length === 0 && (
-    <div className='flex items-center justify-center rounded-xl border border-dashed border-white/[0.08] py-12'>
+    <div className='flex items-center justify-center rounded-xl border border-dashed border-border py-12'>
       <div className='text-center'>
-        <Icons.teams className='mx-auto mb-3 size-10 text-[#9CA3AF]/40' />
-        <p className='text-sm text-[#9CA3AF]'>{ORGANIZATION_LABELS.members.noMembers}</p>
+        <Icons.teams className='mx-auto mb-3 size-10 text-muted-foreground/40' />
+        <p className='text-sm text-muted-foreground'>{ORGANIZATION_LABELS.members.noMembers}</p>
         <Button onClick={openAdd} variant='outline' size='sm' className='mt-4'>
           <Icons.add className='size-4' />
           {ORGANIZATION_LABELS.form.addMember}

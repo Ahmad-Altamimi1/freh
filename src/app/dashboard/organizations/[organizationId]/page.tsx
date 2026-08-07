@@ -4,6 +4,7 @@ import { organizationByIdOptions } from '@/features/organizations/api/queries';
 import PageContainer from '@/components/layout/page-container';
 import { OrganizationDetailPage } from '@/features/organizations/components/organization-detail-page';
 import { ORGANIZATION_LABELS } from '@/features/organizations/constants/labels';
+import type { Organization } from '@/features/organizations/api/types';
 
 export const metadata = {
   title: 'بيانات الجمعية'
@@ -15,13 +16,14 @@ export default async function Page(props: PageProps) {
   const params = await props.params;
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery(organizationByIdOptions(params.organizationId));
+  await queryClient.prefetchQuery(organizationByIdOptions(params.organizationId));
+
+  const organization = queryClient.getQueryData<Organization | null>(
+    organizationByIdOptions(params.organizationId).queryKey
+  );
 
   return (
-    <PageContainer
-      pageTitle={ORGANIZATION_LABELS.page.detailTitle}
-      pageDescription={ORGANIZATION_LABELS.page.detailDescription}
-    >
+    <PageContainer pageTitle={organization?.name ?? ORGANIZATION_LABELS.page.detailTitle}>
       <div className='flex-1 space-y-4'>
         <HydrationBoundary state={dehydrate(queryClient)}>
           <OrganizationDetailPage organizationId={params.organizationId} />

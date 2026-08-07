@@ -6,7 +6,6 @@ import { notFound, useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as React from 'react';
-import type { Icon } from '@/components/icons';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -19,48 +18,26 @@ import { formatDateAr, formatNumberAr } from '@/lib/format';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
 import { OrganizationFormSheet } from './organization-form-sheet';
 import { MembersManager } from './members-manager';
-import { cn } from '@/lib/utils';
 
 interface OrganizationDetailPageProps {
   organizationId: string;
 }
 
-type FieldInfo = {
-  icon: Icon;
-  label: string;
-  value: React.ReactNode;
-  iconBg: string;
-};
-
-function InfoTile({ icon: IconCmp, label, value, iconBg }: FieldInfo) {
-  return (
-    <div className='group flex items-start gap-4 rounded-xl border border-white/[0.06] bg-[#141A24] p-5 transition-all duration-200 hover:border-white/[0.12] hover:shadow-lg hover:shadow-purple-500/5'>
-      <div
-        className={cn(
-          'flex size-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 group-hover:border-white/[0.15] group-hover:shadow-md',
-          iconBg
-        )}
-      >
-        <IconCmp className='size-5 text-white' />
-      </div>
-      <div className='min-w-0 flex-1'>
-        <p className='text-[13px] font-medium leading-none text-[#9CA3AF]'>{label}</p>
-        <div className='mt-2 text-[17px] font-semibold leading-tight text-white'>{value}</div>
-      </div>
-    </div>
-  );
+/**
+ * Renders Western digits as Arabic-Indic (٠-٩).
+ *
+ * The app's formatters intentionally emit Western digits (`nu-latn`), but the
+ * facts strip is a display accent, so its numerals are converted locally rather
+ * than changing the shared formatting helpers.
+ */
+function toArabicIndic(value: string): string {
+  return value.replace(/\d/g, (digit) => String.fromCharCode(0x0660 + digit.charCodeAt(0) - 0x30));
 }
 
-function FieldSkeleton() {
-  return (
-    <div className='flex items-start gap-4 rounded-xl border border-white/[0.06] bg-[#141A24] p-5'>
-      <div className='size-11 animate-pulse rounded-xl bg-white/[0.06]' />
-      <div className='flex-1 space-y-2'>
-        <div className='h-3 w-20 animate-pulse rounded bg-white/[0.06]' />
-        <div className='h-5 w-32 animate-pulse rounded bg-white/[0.06]' />
-      </div>
-    </div>
-  );
+/** Formats a number and converts it to Arabic-Indic digits, without grouping separators. */
+function arabicIndicNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return toArabicIndic(formatNumberAr(value).replace(/\D/g, ''));
 }
 
 export function OrganizationDetailPage({ organizationId }: OrganizationDetailPageProps) {
@@ -91,114 +68,117 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
     onError: (error) => toast.error(error.message || ORGANIZATION_LABELS.delete.failed)
   });
 
-  const fields: FieldInfo[] = [
+  const establishedYear = organization.establishedAt
+    ? Number(organization.establishedAt.slice(0, 4)) || null
+    : null;
+
+  // Hero eyebrow — derived from the founding year and the district.
+  const eyebrow = [
+    establishedYear != null ? `تأسست عام ${arabicIndicNumber(establishedYear)}` : null,
+    organization.district || null
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  // Hero description — district + classification, with a generic fallback.
+  const description =
+    [
+      organization.classification
+        ? `${ORGANIZATION_FIELD_LABELS.classification}: ${organization.classification}`
+        : null,
+      organization.district
+        ? `${ORGANIZATION_FIELD_LABELS.district}: ${organization.district}`
+        : null
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'جمعية ثقافية تعمل في محافظة إربد';
+
+  const facts: { label: string; value: string }[] = [
     {
-      icon: Icons.building,
-      label: ORGANIZATION_FIELD_LABELS.name,
-      value: <span className='font-medium'>{organization.name}</span>,
-      iconBg: 'border-purple-500/30 bg-purple-500/10'
+      label: ORGANIZATION_FIELD_LABELS.establishedAt,
+      value: arabicIndicNumber(establishedYear)
     },
     {
-      icon: Icons.badgeCheck,
+      label: ORGANIZATION_FIELD_LABELS.district,
+      value: organization.district || '—'
+    },
+    {
+      label: ORGANIZATION_FIELD_LABELS.classification,
+      value: organization.classification || '—'
+    },
+    {
+      label: ORGANIZATION_FIELD_LABELS.termLength,
+      value: arabicIndicNumber(organization.termLength)
+    }
+  ];
+
+  const infoRows: { label: string; value: React.ReactNode }[] = [
+    { label: ORGANIZATION_FIELD_LABELS.name, value: organization.name },
+    {
       label: ORGANIZATION_FIELD_LABELS.nationalId,
       value: organization.nationalId ? (
         <span dir='ltr' className='tabular-nums tracking-tight'>
           {organization.nationalId}
         </span>
       ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-blue-500/30 bg-blue-500/10'
+        <span className='text-muted-foreground'>—</span>
+      )
     },
+    { label: ORGANIZATION_FIELD_LABELS.district, value: organization.district },
     {
-      icon: Icons.workspace,
-      label: ORGANIZATION_FIELD_LABELS.district,
-      value: (
-        <Badge variant='outline' className='border-white/[0.12] bg-white/[0.04] text-white'>
-          {organization.district}
-        </Badge>
-      ),
-      iconBg: 'border-emerald-500/30 bg-emerald-500/10'
-    },
-    {
-      icon: Icons.filter,
       label: ORGANIZATION_FIELD_LABELS.classification,
-      value: organization.classification ? (
-        <Badge variant='secondary' className='border-white/[0.08] bg-white/[0.06] text-white/90'>
-          {organization.classification}
-        </Badge>
-      ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-amber-500/30 bg-amber-500/10'
+      value: organization.classification || <span className='text-muted-foreground'>—</span>
     },
     {
-      icon: Icons.calendar,
       label: ORGANIZATION_FIELD_LABELS.establishedAt,
       value: organization.establishedAt ? (
-        <span className='whitespace-nowrap'>{formatDateAr(organization.establishedAt)}</span>
+        formatDateAr(organization.establishedAt)
       ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-rose-500/30 bg-rose-500/10'
+        <span className='text-muted-foreground'>—</span>
+      )
     },
     {
-      icon: Icons.clock,
       label: ORGANIZATION_FIELD_LABELS.termStart,
       value: organization.termStart ? (
-        <span className='whitespace-nowrap'>{formatDateAr(organization.termStart)}</span>
+        formatDateAr(organization.termStart)
       ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-cyan-500/30 bg-cyan-500/10'
+        <span className='text-muted-foreground'>—</span>
+      )
     },
     {
-      icon: Icons.clock,
       label: ORGANIZATION_FIELD_LABELS.termEnd,
       value: organization.termEnd ? (
-        <span className='whitespace-nowrap'>{formatDateAr(organization.termEnd)}</span>
+        formatDateAr(organization.termEnd)
       ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-violet-500/30 bg-violet-500/10'
+        <span className='text-muted-foreground'>—</span>
+      )
     },
     {
-      icon: Icons.calendar,
       label: ORGANIZATION_FIELD_LABELS.termLength,
-      value: organization.termLength ? (
-        <span dir='ltr' className='tabular-nums'>
-          {formatNumberAr(organization.termLength)}
-        </span>
-      ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-orange-500/30 bg-orange-500/10'
+      value:
+        organization.termLength != null ? (
+          formatNumberAr(organization.termLength)
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        )
     },
     {
-      icon: Icons.user,
       label: ORGANIZATION_FIELD_LABELS.directorName,
-      value: organization.directorName ? (
-        <span>{organization.directorName}</span>
-      ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-sky-500/30 bg-sky-500/10'
+      value: organization.directorName || <span className='text-muted-foreground'>—</span>
     },
     {
-      icon: Icons.phone,
       label: ORGANIZATION_FIELD_LABELS.mobile,
       value: organization.mobile ? (
         <a
           dir='ltr'
           href={`tel:${organization.mobile}`}
-          className='tabular-nums text-white transition-colors hover:text-purple-400'
+          className='tabular-nums text-primary transition-colors hover:text-primary/70'
         >
           {organization.mobile}
         </a>
       ) : (
-        <span className='text-[#9CA3AF]'>—</span>
-      ),
-      iconBg: 'border-green-500/30 bg-green-500/10'
+        <span className='text-muted-foreground'>—</span>
+      )
     }
   ];
 
@@ -223,105 +203,75 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
         />
       )}
 
-      <div className='space-y-6'>
+      <div className='space-y-8'>
         <div className='flex items-center gap-2'>
           <Button
             variant='ghost'
             size='sm'
             render={<Link href='/dashboard/organizations' />}
-            className='text-[#9CA3AF] transition-colors hover:text-white'
+            className='text-muted-foreground transition-colors hover:text-foreground'
           >
             <Icons.chevronRight className='size-4' />
             {ORGANIZATION_LABELS.actions.backToList}
           </Button>
         </div>
 
-        <div
-          className='overflow-hidden rounded-[18px] border border-white/[0.06] shadow-lg shadow-black/20'
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(20,26,36,0.95) 0%, rgba(15,20,30,0.98) 50%, rgba(20,26,36,0.95) 100%)',
-            backdropFilter: 'blur(12px)'
-          }}
-        >
-          <div className='p-8'>
-            <div className='flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between'>
-              <div className='flex items-start gap-5'>
-                <div className='flex size-16 shrink-0 items-center justify-center rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-500/20 to-purple-500/5 shadow-lg shadow-purple-500/10'>
-                  <Icons.building className='size-8 text-purple-400' />
-                </div>
-                <div>
-                  <h1 className='text-[28px] font-semibold leading-tight tracking-tight text-white'>
-                    {organization.name}
-                  </h1>
-                  <p className='mt-1.5 text-[14px] font-medium leading-none text-[#9CA3AF]'>
-                    {ORGANIZATION_FIELD_LABELS.district} — {organization.district}
-                  </p>
-                </div>
+        <div>
+          {/* 1. Hero */}
+          <section className='rounded-2xl border border-border bg-card px-6 pb-16 pt-10 shadow-sm sm:px-10'>
+            <div className='flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between'>
+              <div className='space-y-4'>
+                {eyebrow && (
+                  <Badge variant='outline' className='border-border bg-muted text-muted-foreground'>
+                    {eyebrow}
+                  </Badge>
+                )}
+                <h1 className='text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl'>
+                  {ORGANIZATION_LABELS.page.detailTitle}
+                </h1>
+                <p className='max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base'>
+                  {description}
+                </p>
               </div>
 
-              <div className='flex items-center gap-3'>
-                <Button
-                  onClick={() => setEditOpen(true)}
-                  className='rounded-xl border-white/[0.08] bg-white/[0.06] text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.12] hover:shadow-md'
-                >
+              <div className='flex shrink-0 items-center gap-3'>
+                <Button onClick={() => setEditOpen(true)} variant='outline' className='rounded-xl'>
                   <Icons.edit className='size-4' />
                   {ORGANIZATION_LABELS.actions.edit}
                 </Button>
-                <Button
-                  variant='destructive'
-                  onClick={() => setDeleteOpen(true)}
-                  className='rounded-xl border-transparent bg-[#EF5350]/90 text-white shadow-sm transition-all duration-200 hover:bg-[#EF5350] hover:shadow-md hover:shadow-red-500/20'
-                >
-                  <Icons.trash className='size-4' />
-                  {ORGANIZATION_LABELS.actions.delete}
-                </Button>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className='h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent' />
-
-          <div className='p-8'>
-            <React.Suspense
-              fallback={
-                <div className='grid gap-5 sm:grid-cols-2'>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <FieldSkeleton key={i} />
-                  ))}
-                </div>
-              }
-            >
-              <div className='grid gap-5 sm:grid-cols-2'>
-                {fields.map((field) => (
-                  <InfoTile key={field.label} {...field} />
-                ))}
+          {/* 2. Facts strip — overlaps the hero */}
+          <section className='relative z-10 -mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm lg:grid-cols-4'>
+            {facts.map((fact) => (
+              <div
+                key={fact.label}
+                className='flex flex-col items-center justify-center gap-1.5 bg-card px-4 py-6 text-center'
+              >
+                <span className='text-xl font-bold text-primary sm:text-1xl'>{fact.value}</span>
+                <span className='text-xs font-medium text-muted-foreground'>{fact.label}</span>
               </div>
-            </React.Suspense>
-          </div>
+            ))}
+          </section>
         </div>
 
-        <div
-          className='overflow-hidden rounded-[18px] border border-white/[0.06] shadow-lg shadow-black/20'
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(20,26,36,0.95) 0%, rgba(15,20,30,0.98) 50%, rgba(20,26,36,0.95) 100%)',
-            backdropFilter: 'blur(12px)'
-          }}
-        >
-          <div className='p-8'>
-            <div className='mb-6 flex items-center justify-between'>
+        {/* 3. Members + definition list */}
+        <section className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]'>
+          <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+            <div className='flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5'>
               <div className='flex items-center gap-3'>
-                <div className='flex size-10 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/10'>
-                  <Icons.teams className='size-5 text-indigo-400' />
+                <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+                  <Icons.teams className='size-5' />
                 </div>
                 <div>
-                  <h2 className='text-lg font-semibold text-white'>
+                  <h2 className='text-lg font-semibold text-foreground'>
                     {ORGANIZATION_LABELS.members.sectionTitle}
                   </h2>
-                  <p className='text-sm text-[#9CA3AF]'>
+                  <p className='text-sm text-muted-foreground'>
                     {organization.members.length > 0
-                      ? `${organization.members.length} عضو`
+                      ? `${formatNumberAr(organization.members.length)} عضو`
                       : ORGANIZATION_LABELS.members.noMembers}
                   </p>
                 </div>
@@ -330,15 +280,45 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
                 render={
                   <Link href={`/dashboard/organizations/${organization.id}/import-members`} />
                 }
-                className='rounded-xl border-white/[0.08] bg-white/[0.06] text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.12] hover:shadow-md'
+                variant='outline'
+                className='rounded-xl'
               >
                 <Icons.fileImport className='size-4' />
                 {ORGANIZATION_LABELS.members.importButton}
               </Button>
             </div>
-
-            <MembersManager organizationId={organization.id} members={organization.members} />
+            <div className='p-6'>
+              <MembersManager organizationId={organization.id} members={organization.members} />
+            </div>
           </div>
+
+          <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+            {/* <div className='border-b border-border px-6 py-4'>
+              <h2 className='text-base font-semibold text-foreground'>
+                {ORGANIZATION_LABELS.page.detailTitle}
+              </h2>
+            </div> */}
+            <dl className='divide-y divide-border/50'>
+              {infoRows.map((row) => (
+                <div
+                  key={row.label}
+                  className='flex items-center justify-between gap-6 px-6 py-3.5'
+                >
+                  <dt className='shrink-0 text-sm text-muted-foreground'>{row.label}</dt>
+                  <dd className='min-w-0 text-right text-xs font-medium leading-snug text-foreground'>
+                    {row.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        <div className='flex justify-end'>
+          <Button variant='destructive' onClick={() => setDeleteOpen(true)} className='rounded-xl'>
+            <Icons.trash className='size-4' />
+            {ORGANIZATION_LABELS.actions.delete}
+          </Button>
         </div>
       </div>
     </>

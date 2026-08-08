@@ -27,6 +27,7 @@ import { todayUTC } from '../lib/term';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
 import { OrganizationFormSheet } from './organization-form-sheet';
 import { MembersManager } from './members-manager';
+import { OrganizationCorrespondences } from './organization-correspondences';
 
 interface OrganizationDetailPageProps {
   organizationId: string;
@@ -353,7 +354,10 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
           </div>
         </section>
 
-        {/* 5. Danger zone — irreversible actions live apart from the record, at the
+        {/* 5. Correspondences — all filings against this organization */}
+        <OrganizationCorrespondences organizationId={organization.id} />
+
+        {/* 6. Danger zone — irreversible actions live apart from the record, at the
             end of the page, so deleting cannot be mistaken for editing. */}
         <section className='rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-5'>
           <div className='flex flex-wrap items-center justify-between gap-4'>

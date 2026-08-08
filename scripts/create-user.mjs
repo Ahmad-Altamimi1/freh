@@ -93,4 +93,33 @@ console.log(`Created user ${body.email}`);
 console.log(`  id:           ${body.id}`);
 console.log(`  confirmed:    ${body.email_confirmed_at ? 'yes' : 'no'}`);
 console.log(`  app_metadata: ${JSON.stringify(body.app_metadata ?? {})}`);
+
+if (role) {
+  const dbUrl = env.DIRECT_DATABASE_URL ?? env.DATABASE_URL;
+  if (!dbUrl) {
+    console.warn('\n  DIRECT_DATABASE_URL not set — skipped user_roles insert.');
+    console.warn('  Run the INSERT manually or set the env var.');
+  } else {
+    const { default: postgres } = await import('postgres');
+    const sql = postgres(dbUrl, { max: 1 });
+    try {
+      const [assigned] = await sql`
+        INSERT INTO user_roles (user_id, role_id)
+        SELECT ${body.id}::uuid, r.id
+        FROM roles r
+        WHERE r.key = ${role}
+        ON CONFLICT DO NOTHING
+        RETURNING role_id
+      `;
+      if (assigned) {
+        console.log(`  role:         ${role} (assigned in user_roles)`);
+      } else {
+        console.warn(`  role:         "${role}" not found in roles table — skipped.`);
+      }
+    } finally {
+      await sql.end();
+    }
+  }
+}
+
 console.log('\nYou can now sign in at /auth/sign-in.');

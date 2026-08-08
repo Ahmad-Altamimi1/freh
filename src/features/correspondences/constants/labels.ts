@@ -1,5 +1,6 @@
 import type { FilterOperator, JoinOperator } from '@/types/data-table';
 import type { RelativeDateToken } from '@/lib/filter-columns';
+import { Icons, type Icon } from '@/components/icons';
 import { CORRESPONDENCE_TYPES, type CorrespondenceType } from '../api/types';
 
 /**
@@ -30,8 +31,13 @@ export const CORRESPONDENCE_TYPE_BADGE_VARIANT: Record<
   CorrespondenceType,
   'default' | 'secondary'
 > = {
-  قادمة: 'default',
-  واردة: 'secondary'
+  صادر: 'default',
+  وارد: 'secondary'
+};
+
+export const CORRESPONDENCE_TYPE_ICON: Record<CorrespondenceType, Icon> = {
+  صادر: Icons.send,
+  وارد: Icons.mail
 };
 
 /**
@@ -81,7 +87,7 @@ export const CORRESPONDENCE_LABELS = {
   },
   page: {
     listTitle: 'المراسلات',
-    listDescription: 'سجل المراسلات الواردة والقادمة — بحث وتصفية متقدمة.',
+    listDescription: 'سجل المراسلات الصادرة والواردة — بحث وتصفية متقدمة.',
     createTitle: 'إضافة مراسلة',
     createDescription: 'أدخل بيانات المراسلة الجديدة.',
     detailTitle: 'بيانات المراسلة',

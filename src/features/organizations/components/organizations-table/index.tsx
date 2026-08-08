@@ -1,7 +1,8 @@
 'use client';
 
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates } from 'nuqs';
 import * as React from 'react';
 
@@ -42,22 +43,8 @@ interface OrganizationsTableProps {
 }
 
 export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
+  const router = useRouter();
   const { can } = usePermissions();
-  /**
-   * Every query-param write goes through this transition.
-   *
-   * `useSuspenseQuery` re-suspends whenever the query key changes, and a plain
-   * update would let React tear down the table and show the route's Suspense
-   * fallback — the full-page skeleton — on every filter, sort or page change.
-   * Inside a transition React keeps the current tree mounted until the new data
-   * is ready, so the rows stay on screen and `isPending` drives a much quieter
-   * loading state.
-   *
-   * This is the reason the table can keep `useSuspenseQuery` (the pattern the
-   * rest of the template uses) rather than dropping to `useQuery` with
-   * `placeholderData` — suspense queries do not accept placeholder data.
-   */
-  const [isPending, startTransition] = React.useTransition();
 
   const [params, setParams] = useQueryStates(
     {
@@ -70,9 +57,7 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
       filters: getFiltersStateParser<Organization>(COLUMN_ID_SET).withDefault([]),
       joinOperator: parseAsStringEnum(['and', 'or']).withDefault('and')
     },
-    // `shallow: false` would round-trip to the server on every keystroke.
-    // The query is React Query's job; the URL only records intent.
-    { shallow: true, history: 'replace', startTransition }
+    { shallow: true, history: 'replace' }
   );
 
   // Facets drive the option lists for the district and classification filters.
@@ -121,28 +106,24 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
     [params]
   );
 
-  const { data } = useSuspenseQuery(organizationsQueryOptions(filters));
+  const { data, isFetching } = useQuery({
+    ...organizationsQueryOptions(filters),
+    placeholderData: keepPreviousData
+  });
+
+  const rows = data?.data ?? [];
+  const pageCount = data?.pageCount ?? 0;
 
   const { table } = useDataTable({
-    data: data.data,
+    data: rows,
     columns,
-    pageCount: data.pageCount,
-    // The builder owns filter state; TanStack's own column filters stay out of it.
+    pageCount,
     enableAdvancedFilter: true,
     shallow: true,
-    // Sorting and pagination are written by the table itself, so they need the
-    // same transition as the filters or they would still trip the fallback.
-    startTransition,
     getRowId: (row) => row.id,
     initialState: {
       sorting: [{ id: 'name', desc: false }],
-      // `useDataTable` keeps its own `perPage` parser and falls back to 10
-      // without this, which would leave the pagination control counting by a
-      // different page size than the query actually fetched.
       pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
-      // Keeps the row menu reachable without scrolling the table sideways.
-      // TanStack's pinning sides are logical, so 'right' is the trailing edge —
-      // the left one on an RTL page. See `getCommonPinningStyles`.
       columnPinning: { right: canEdit ? ['actions'] : [] }
     }
   });
@@ -202,8 +183,18 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
     return value ? `?${value}` : '';
   }, [params.q, params.filters, params.joinOperator, params.sort]);
 
+  const handleRowClick = React.useCallback(
+    (row: Organization) => router.push(`/dashboard/organizations/${row.id}`),
+    [router]
+  );
+
   return (
-    <DataTable table={table} isPending={isPending} pageSizeOptions={PAGE_SIZE_OPTIONS}>
+    <DataTable
+      table={table}
+      isPending={isFetching}
+      pageSizeOptions={PAGE_SIZE_OPTIONS}
+      onRowClick={handleRowClick}
+    >
       <DataTableAdvancedToolbar
         table={table}
         search={searchDraft}

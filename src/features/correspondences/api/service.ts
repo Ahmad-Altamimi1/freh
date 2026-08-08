@@ -11,10 +11,7 @@ import { requirePermission } from '@/lib/auth/access';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { buildFilterWhere, escapeLike, type FilterableColumns } from '@/lib/filter-columns';
 import { deletePrivateFile, getSignedFileUrl, uploadPrivateFile } from '@/lib/storage';
-import {
-  CORRESPONDENCE_ALLOWED_MIME_TYPES,
-  CORRESPONDENCE_MAX_FILE_SIZE_BYTES
-} from '../constants/upload';
+import { CORRESPONDENCE_MAX_FILE_SIZE_BYTES } from '../constants/upload';
 import { correspondenceFormSchema } from '../schemas/correspondence';
 import type {
   CorrespondenceFacets,
@@ -271,7 +268,7 @@ async function uploadNewFiles(files: File[]): Promise<CorrespondenceFile[]> {
     files.map(async (file) => {
       const stored = await uploadPrivateFile(file, {
         prefix: 'correspondences',
-        allowedMimeTypes: CORRESPONDENCE_ALLOWED_MIME_TYPES,
+        allowedMimeTypes: [],
         maxSizeBytes: CORRESPONDENCE_MAX_FILE_SIZE_BYTES
       });
       return { ...stored, uploadedAt: new Date().toISOString() };

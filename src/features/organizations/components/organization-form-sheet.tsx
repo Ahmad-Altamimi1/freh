@@ -272,9 +272,9 @@ export function OrganizationFormSheet({
 
               <div className='space-y-4'>
                 {members.map((member, i) => (
-                  <div key={i} className='rounded-lg border border-white/[0.06] bg-[#141A24] p-4'>
+                  <div key={i} className='rounded-lg border border-border bg-muted/50 p-4'>
                     <div className='mb-3 flex items-center justify-between'>
-                      <span className='text-sm font-medium text-[#9CA3AF]'>
+                      <span className='text-sm font-medium text-muted-foreground'>
                         {LABELS.memberSectionTitle} {i + 1}
                       </span>
                       <Button
@@ -282,7 +282,7 @@ export function OrganizationFormSheet({
                         variant='ghost'
                         size='sm'
                         onClick={() => removeMember(i)}
-                        className='text-red-400 hover:text-red-300'
+                        className='text-destructive hover:text-destructive/80'
                       >
                         <Icons.trash className='size-3.5' />
                         {LABELS.removeMember}

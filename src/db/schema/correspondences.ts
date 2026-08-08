@@ -3,7 +3,7 @@ import { check, index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm
 import type { StoredFile } from '@/lib/storage/types';
 import { organizations } from './organizations';
 
-export const CORRESPONDENCE_TYPES = ['قادمة', 'واردة'] as const;
+export const CORRESPONDENCE_TYPES = ['صادر', 'وارد'] as const;
 export type CorrespondenceType = (typeof CORRESPONDENCE_TYPES)[number];
 
 /** A `StoredFile` plus when it was attached — `StoredFile` itself carries no time dimension. */
@@ -23,7 +23,7 @@ export const correspondences = pgTable(
     /** `name` folded through `normalizeArabic()`. Same role as organizations.nameNormalized. */
     nameNormalized: text('name_normalized').notNull(),
 
-    /** قادمة | واردة. Checked at the DB, not a pg enum — see notifications.status for the same idiom. */
+    /** صادر | وارد. Checked at the DB, not a pg enum — see notifications.status for the same idiom. */
     type: text('type').notNull().$type<CorrespondenceType>(),
 
     organizationId: uuid('organization_id')
@@ -43,7 +43,7 @@ export const correspondences = pgTable(
     index('correspondences_organization_id_idx').on(table.organizationId),
     index('correspondences_type_idx').on(table.type),
     index('correspondences_created_at_idx').on(table.createdAt),
-    check('correspondences_type_check', sql`${table.type} in ('قادمة', 'واردة')`)
+    check('correspondences_type_check', sql`${table.type} in ('صادر', 'وارد')`)
   ]
 );
 

@@ -12,6 +12,7 @@ import {
   CORRESPONDENCE_FIELD_LABELS,
   CORRESPONDENCE_LABELS,
   CORRESPONDENCE_TYPE_BADGE_VARIANT,
+  CORRESPONDENCE_TYPE_ICON,
   CORRESPONDENCE_TYPE_OPTIONS
 } from '../../constants/labels';
 import { CellAction } from './cell-action';
@@ -81,7 +82,13 @@ export function getCorrespondenceColumns({
       ),
       cell: ({ cell }) => {
         const value = cell.getValue<Correspondence['type']>();
-        return <Badge variant={CORRESPONDENCE_TYPE_BADGE_VARIANT[value]}>{value}</Badge>;
+        const TypeIcon = CORRESPONDENCE_TYPE_ICON[value];
+        return (
+          <Badge variant={CORRESPONDENCE_TYPE_BADGE_VARIANT[value]} className='gap-1'>
+            <TypeIcon className='size-3.5' />
+            {value}
+          </Badge>
+        );
       },
       meta: {
         label: CORRESPONDENCE_FIELD_LABELS.type,

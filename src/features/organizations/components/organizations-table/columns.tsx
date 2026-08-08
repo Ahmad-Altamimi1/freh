@@ -99,7 +99,7 @@ export function getOrganizationColumns({
         variant: 'multiSelect',
         options: districtOptions
       },
-      enableColumnFilter: true
+      enableColumnFilter: false
     },
     {
       id: 'classification',
@@ -117,7 +117,7 @@ export function getOrganizationColumns({
         variant: 'multiSelect',
         options: classificationOptions
       },
-      enableColumnFilter: true
+      enableColumnFilter: false
     },
     {
       id: 'nationalId',

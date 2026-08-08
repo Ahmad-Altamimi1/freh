@@ -18,7 +18,8 @@ import { deleteCorrespondenceMutation } from '../api/mutations';
 import {
   CORRESPONDENCE_FIELD_LABELS,
   CORRESPONDENCE_LABELS,
-  CORRESPONDENCE_TYPE_BADGE_VARIANT
+  CORRESPONDENCE_TYPE_BADGE_VARIANT,
+  CORRESPONDENCE_TYPE_ICON
 } from '../constants/labels';
 
 interface CorrespondenceDetailPageProps {
@@ -90,11 +91,15 @@ export function CorrespondenceDetailPage({
     { label: CORRESPONDENCE_FIELD_LABELS.name, value: correspondence.name },
     {
       label: CORRESPONDENCE_FIELD_LABELS.type,
-      value: (
-        <Badge variant={CORRESPONDENCE_TYPE_BADGE_VARIANT[correspondence.type]}>
-          {correspondence.type}
-        </Badge>
-      )
+      value: (() => {
+        const TypeIcon = CORRESPONDENCE_TYPE_ICON[correspondence.type];
+        return (
+          <Badge variant={CORRESPONDENCE_TYPE_BADGE_VARIANT[correspondence.type]} className='gap-1'>
+            <TypeIcon className='size-3.5' />
+            {correspondence.type}
+          </Badge>
+        );
+      })()
     },
     {
       label: CORRESPONDENCE_FIELD_LABELS.organizationId,

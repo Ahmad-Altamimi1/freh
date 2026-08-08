@@ -27,6 +27,8 @@ interface DataTableProps<TData> extends React.ComponentProps<'div'> {
   isPending?: boolean;
   /** Choices for the rows-per-page control. Must include the table's default. */
   pageSizeOptions?: number[];
+  /** Called when a row is clicked. Ignored for clicks on interactive elements. */
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData>({
@@ -34,6 +36,7 @@ export function DataTable<TData>({
   actionBar,
   isPending,
   pageSizeOptions,
+  onRowClick,
   children
 }: DataTableProps<TData>) {
   return (
@@ -75,7 +78,18 @@ export function DataTable<TData>({
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      className={onRowClick ? 'cursor-pointer' : undefined}
+                      onClick={(e) => {
+                        if (!onRowClick) return;
+                        const target = e.target as HTMLElement;
+                        if (target.closest('a, button, [role="checkbox"], [role="menuitem"]'))
+                          return;
+                        onRowClick(row.original);
+                      }}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}

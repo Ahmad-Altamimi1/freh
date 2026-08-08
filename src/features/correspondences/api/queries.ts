@@ -2,7 +2,12 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { organizationsQueryOptions } from '@/features/organizations/api/queries';
 import type { OrganizationFilters } from '@/features/organizations/api/types';
-import { getCorrespondenceById, getCorrespondenceFacets, getCorrespondences } from './service';
+import {
+  getCorrespondenceById,
+  getCorrespondenceFacets,
+  getCorrespondences,
+  getCorrespondencesByOrganization
+} from './service';
 import type { CorrespondenceFilters } from './types';
 
 /**
@@ -30,6 +35,12 @@ export const correspondenceByIdOptions = (id: string) =>
   queryOptions({
     queryKey: correspondenceKeys.detail(id),
     queryFn: () => getCorrespondenceById(id)
+  });
+
+export const correspondencesByOrganizationOptions = (organizationId: string) =>
+  queryOptions({
+    queryKey: [...correspondenceKeys.all, 'byOrganization', organizationId] as const,
+    queryFn: () => getCorrespondencesByOrganization(organizationId)
   });
 
 /**

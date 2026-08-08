@@ -3,7 +3,11 @@ import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { canAny } from '@/lib/auth/access';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getQueryClient } from '@/lib/query-client';
-import { correspondenceFacetsQueryOptions, correspondencesQueryOptions } from '../api/queries';
+import {
+  correspondenceFacetsQueryOptions,
+  correspondenceOrganizationOptionsQueryOptions,
+  correspondencesQueryOptions
+} from '../api/queries';
 import { correspondencesSearchParamsCache } from '../api/search-params';
 import { CorrespondencesTable } from './correspondences-table';
 
@@ -29,6 +33,7 @@ export default async function CorrespondencesListing() {
 
   void queryClient.prefetchQuery(correspondencesQueryOptions(filters));
   void queryClient.prefetchQuery(correspondenceFacetsQueryOptions());
+  void queryClient.prefetchQuery(correspondenceOrganizationOptionsQueryOptions());
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

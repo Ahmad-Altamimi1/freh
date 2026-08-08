@@ -69,7 +69,9 @@ export function validateFile(file: File, options: FileValidationOptions = {}): v
   // controlled. It is checked here to catch honest mistakes early; the real
   // protection is that the bucket is private, paths are random, and
   // `contentType` is pinned on upload so nothing is served as active content.
-  if (!allowedMimeTypes.includes(file.type)) {
+  // An empty array means "accept all" — callers that know they want every type
+  // pass `[]` rather than maintaining a comprehensive list.
+  if (allowedMimeTypes.length > 0 && !allowedMimeTypes.includes(file.type)) {
     throw new StorageError(
       `Files of type "${file.type || 'unknown'}" are not allowed.`,
       'INVALID_FILE_TYPE'

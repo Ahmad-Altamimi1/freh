@@ -86,6 +86,11 @@ export async function previewOrganizationsImport(formData: FormData): Promise<Im
 
 /** Shapes a parsed row into the insert payload, deriving the matching columns. */
 function toInsertValues(row: ParsedRow) {
+  const directorName = row.directorName?.trim() || null;
+  const members = directorName
+    ? [{ name: directorName, nationalId: '', mobile: '', jobTitle: 'مدير' }]
+    : [];
+
   return {
     name: row.name,
     nameNormalized: normalizeArabic(row.name),
@@ -93,9 +98,10 @@ function toInsertValues(row: ParsedRow) {
     classification: row.classification,
     nationalId: row.nationalId,
     establishedAt: row.establishedAt,
-    directorName: row.directorName,
+    directorName,
     mobile: row.mobile,
     serialNo: row.serialNo,
+    members,
     searchKey: buildSearchKey(row)
   };
 }

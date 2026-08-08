@@ -664,6 +664,9 @@ function blankToNull(value: string | null | undefined): string | null {
 
 /** Maps form values onto the columns, including the derived ones. */
 function toWriteValues(input: OrganizationMutationPayload) {
+  const directorName = blankToNull(input.directorName);
+  const members = ensureDirectorInMembers(input.members, directorName);
+
   const row = {
     name: input.name.trim(),
     district: input.district.trim(),
@@ -672,12 +675,10 @@ function toWriteValues(input: OrganizationMutationPayload) {
     establishedAt: blankToNull(input.establishedAt),
     termStart: blankToNull(input.termStart),
     termLength: input.termLength === '' ? null : input.termLength,
-    // Always recomputed here, never taken from the client — see the comment
-    // on `OrganizationMutationPayload`, which has no `termEnd` field at all.
     termEnd: calculateTermEnd(input.termStart, input.termLength) || null,
-    directorName: blankToNull(input.directorName),
+    directorName,
     mobile: blankToNull(input.mobile),
-    members: input.members
+    members
   };
 
   return {
@@ -685,6 +686,24 @@ function toWriteValues(input: OrganizationMutationPayload) {
     nameNormalized: normalizeArabic(row.name),
     searchKey: buildSearchKey(row)
   };
+}
+
+/**
+ * Ensures the director appears in the members list. If no member with a
+ * matching normalized name exists, a new entry is prepended with
+ * `jobTitle: 'مدير'`. Existing members are never overwritten.
+ */
+function ensureDirectorInMembers(
+  members: OrganizationMutationPayload['members'],
+  directorName: string | null
+): OrganizationMutationPayload['members'] {
+  if (!directorName) return members;
+
+  const normalizedDirector = normalizeArabic(directorName);
+  const alreadyPresent = members.some((m) => normalizeArabic(m.name) === normalizedDirector);
+  if (alreadyPresent) return members;
+
+  return [{ name: directorName, nationalId: '', mobile: '', jobTitle: 'مدير' }, ...members];
 }
 
 /**

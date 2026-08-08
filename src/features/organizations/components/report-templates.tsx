@@ -11,7 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { usePermissions } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { deleteReportTemplateMutation, saveReportTemplateMutation } from '../api/mutations';
+import {
+  deleteReportTemplateMutation,
+  invalidateReportTemplates,
+  saveReportTemplateMutation
+} from '../api/mutations';
 import { reportTemplatesQueryOptions } from '../api/queries';
 import type { ReportDefinition } from '../api/types';
 import { ORGANIZATION_LABELS } from '../constants/labels';
@@ -45,7 +49,11 @@ export function ReportTemplatesCard({ definition, isValid, onLoad }: ReportTempl
 
   const saveMutation = useMutation({
     ...saveReportTemplateMutation,
+    // Overriding `onSuccess` replaces the options' own handler rather than
+    // adding to it, so the invalidation has to be repeated here — without it
+    // the new template does not appear until the page is reloaded.
     onSuccess: () => {
+      invalidateReportTemplates();
       toast.success(BUILDER.templateSaved);
       setTemplateName('');
     },
@@ -55,6 +63,7 @@ export function ReportTemplatesCard({ definition, isValid, onLoad }: ReportTempl
   const deleteMutation = useMutation({
     ...deleteReportTemplateMutation,
     onSuccess: () => {
+      invalidateReportTemplates();
       toast.success(BUILDER.templateDeleted);
       setPendingDelete(null);
     },

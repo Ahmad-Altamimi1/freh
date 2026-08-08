@@ -6,7 +6,7 @@ import PageContainer from '@/components/layout/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   organizationFacetsQueryOptions,
-  organizationReportQueryOptions,
+  organizationReportRunOptions,
   reportTemplatesQueryOptions
 } from '@/features/organizations/api/queries';
 import { organizationsSearchParamsCache } from '@/features/organizations/api/search-params';
@@ -49,7 +49,21 @@ export default async function Page(props: PageProps) {
   };
 
   const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(organizationReportQueryOptions(filters));
+  /*
+   * The results table's own query. The constants must match what the workspace
+   * builds — only `criteria` and `sections` change what the server returns, so
+   * the rest is pinned on both sides and the two keys hash identically. Get one
+   * of them wrong and the page silently refetches on mount instead of hydrating.
+   */
+  void queryClient.prefetchQuery(
+    organizationReportRunOptions({
+      title: '',
+      criteria: filters,
+      groupBy: 'district',
+      sections: ['table'],
+      columns: []
+    })
+  );
   void queryClient.prefetchQuery(reportTemplatesQueryOptions());
   // The filter builder's option lists. Without this the workspace suspends as a
   // whole on first paint, taking the criteria bar down with it.

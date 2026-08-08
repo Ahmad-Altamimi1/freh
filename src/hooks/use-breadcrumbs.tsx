@@ -4,21 +4,20 @@ import { usePathname } from 'next/navigation';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
-type BreadcrumbItem = {
-  title: string;
-  link: string;
-};
-
-const routeMapping: Record<string, BreadcrumbItem[]> = {
-  '/dashboard': [{ title: 'Dashboard', link: '/dashboard' }],
-  '/dashboard/organizations': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'الجمعيات', link: '/dashboard/organizations' }
-  ],
-  '/dashboard/correspondences': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'المراسلات', link: '/dashboard/correspondences' }
-  ]
+const segmentLabels: Record<string, string> = {
+  dashboard: 'الرئيسية',
+  overview: 'لوحة التحكم',
+  organizations: 'الجمعيات',
+  reports: 'التقارير',
+  'import-members': 'استيراد الأعضاء',
+  correspondences: 'المراسلات',
+  notifications: 'الإشعارات',
+  users: 'المستخدمون',
+  settings: 'الإعدادات',
+  roles: 'الأدوار والصلاحيات',
+  profile: 'الملف الشخصي',
+  new: 'إضافة',
+  edit: 'تعديل'
 };
 
 type BreadcrumbOverrideContextType = {
@@ -69,10 +68,6 @@ export function useBreadcrumbs() {
   const { title: overrideTitle, segmentOverrides } = useContext(BreadcrumbOverrideContext);
 
   const breadcrumbs = useMemo(() => {
-    if (routeMapping[pathname]) {
-      return routeMapping[pathname];
-    }
-
     const segments = pathname.split('/').filter(Boolean);
     return segments.map((segment, index) => {
       const path = `/${segments.slice(0, index + 1).join('/')}`;
@@ -83,11 +78,12 @@ export function useBreadcrumbs() {
         return { title: explicitOverride, link: path };
       }
 
+      if (isLast && overrideTitle) {
+        return { title: overrideTitle, link: path };
+      }
+
       return {
-        title:
-          isLast && overrideTitle
-            ? overrideTitle
-            : segment.charAt(0).toUpperCase() + segment.slice(1),
+        title: segmentLabels[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1),
         link: path
       };
     });

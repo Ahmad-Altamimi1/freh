@@ -170,6 +170,15 @@ export const ORGANIZATION_LABELS = {
     success: 'تم حذف الجمعية.',
     failed: 'تعذّر حذف الجمعية.'
   },
+  /** The report page's results table — the on-screen twin of the printed one. */
+  results: {
+    title: 'نتائج التقرير',
+    showing: (from: string, to: string, total: string) => `${from} – ${to} من ${total}`,
+    noColumns: 'اختر عمودًا واحدًا على الأقل من "أعمدة الجدول" لعرض النتائج.',
+    page: (current: string, total: string) => `صفحة ${current} من ${total}`,
+    previous: 'الصفحة السابقة',
+    next: 'الصفحة التالية'
+  },
   report: {
     total: 'إجمالي الجمعيات',
     districts: 'عدد الألوية',
@@ -287,7 +296,6 @@ export const ORGANIZATION_LABELS = {
     selectAllColumns: 'تحديد الكل',
     clearColumns: 'مسح',
     columnsCount: (selected: number, total: number) => `${selected} من ${total}`,
-    distribution: 'التوزيع حسب',
     output: 'الإخراج',
     outputBlocked: 'اختر قسمًا وعمودًا واحدًا على الأقل لتفعيل التصدير.'
   },
@@ -325,6 +333,49 @@ export const ORGANIZATION_LABELS = {
     runningTitle: 'تقرير الجمعيات الثقافية — اربد',
     printedNote: 'وثيقة صادرة عن نظام سجل الجمعيات الثقافية',
     noRows: 'لا توجد سجلات مطابقة للمعايير المحددة.'
+  },
+  /**
+   * The per-organization profile document — one filed A4 file per society,
+   * as opposed to `report`, which is an aggregate across many.
+   */
+  profile: {
+    /** The button on the organization's page. */
+    action: 'ملف الجمعية',
+    actionHint: 'مستند رسمي يجمع بيانات الجمعية وأعضاءها وسجل مراسلاتها.',
+    preview: 'معاينة الملف',
+    download: 'تنزيل PDF',
+    documentTitle: 'ملف جمعية ثقافية',
+    runningTitle: 'ملف جمعية ثقافية — اربد',
+    generatedAt: 'تاريخ إصدار الملف',
+    sections: {
+      identity: 'البيانات الأساسية',
+      term: 'الدورة الإدارية',
+      members: 'أعضاء الهيئة الإدارية',
+      correspondences: 'سجل المراسلات'
+    },
+    summary: {
+      members: 'عدد الأعضاء',
+      correspondences: 'عدد المراسلات',
+      attachments: 'عدد المرفقات',
+      termStatus: 'حالة الدورة'
+    },
+    memberName: 'الاسم',
+    noMembers: 'لا يوجد أعضاء مسجّلون لهذه الجمعية.',
+    correspondenceSubject: 'موضوع المراسلة',
+    correspondenceType: 'النوع',
+    correspondenceDate: 'التاريخ',
+    correspondenceAttachments: 'المرفقات',
+    noCorrespondences: 'لا توجد مراسلات مسجّلة لهذه الجمعية.',
+    /** Printed in place of the log when the issuing user cannot read it. */
+    correspondencesRestricted: 'سجل المراسلات غير مدرج — الحساب لا يملك صلاحية الاطلاع عليه.',
+    /** Attachment counts, which take Arabic's dual and plural forms. */
+    attachmentCount: (count: number) => {
+      if (count === 0) return '—';
+      if (count === 1) return 'مرفق واحد';
+      if (count === 2) return 'مرفقان';
+      if (count <= 10) return `${formatNumberAr(count)} مرفقات`;
+      return `${formatNumberAr(count)} مرفقًا`;
+    }
   },
   members: {
     sectionTitle: 'أعضاء الجمعية',

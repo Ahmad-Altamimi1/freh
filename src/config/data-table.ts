@@ -1,13 +1,21 @@
 export type DataTableConfig = typeof dataTableConfig;
 
+/**
+ * `isNotEmpty` is deliberately absent from every per-variant operator list.
+ *
+ * "Is not empty" answers a question nobody asks of this data: on a required
+ * column it matches every row, and on an optional one it is the complement of a
+ * check the user already has. It stayed in `operators` below — and the server
+ * still resolves it — so a saved template or a shared URL written before this
+ * change keeps working; it is only withdrawn from the pickers.
+ */
 export const dataTableConfig = {
   textOperators: [
     { label: 'Contains', value: 'iLike' as const },
     { label: 'Does not contain', value: 'notILike' as const },
     { label: 'Is', value: 'eq' as const },
     { label: 'Is not', value: 'ne' as const },
-    { label: 'Is empty', value: 'isEmpty' as const },
-    { label: 'Is not empty', value: 'isNotEmpty' as const }
+    { label: 'Is empty', value: 'isEmpty' as const }
   ],
   numericOperators: [
     { label: 'Is', value: 'eq' as const },
@@ -17,8 +25,7 @@ export const dataTableConfig = {
     { label: 'Is greater than', value: 'gt' as const },
     { label: 'Is greater than or equal to', value: 'gte' as const },
     { label: 'Is between', value: 'isBetween' as const },
-    { label: 'Is empty', value: 'isEmpty' as const },
-    { label: 'Is not empty', value: 'isNotEmpty' as const }
+    { label: 'Is empty', value: 'isEmpty' as const }
   ],
   dateOperators: [
     { label: 'Is', value: 'eq' as const },
@@ -29,20 +36,17 @@ export const dataTableConfig = {
     { label: 'Is on or after', value: 'gte' as const },
     { label: 'Is between', value: 'isBetween' as const },
     { label: 'Is relative to today', value: 'isRelativeToToday' as const },
-    { label: 'Is empty', value: 'isEmpty' as const },
-    { label: 'Is not empty', value: 'isNotEmpty' as const }
+    { label: 'Is empty', value: 'isEmpty' as const }
   ],
   selectOperators: [
     { label: 'Is', value: 'eq' as const },
     { label: 'Is not', value: 'ne' as const },
-    { label: 'Is empty', value: 'isEmpty' as const },
-    { label: 'Is not empty', value: 'isNotEmpty' as const }
+    { label: 'Is empty', value: 'isEmpty' as const }
   ],
   multiSelectOperators: [
     { label: 'Has any of', value: 'inArray' as const },
     { label: 'Has none of', value: 'notInArray' as const },
-    { label: 'Is empty', value: 'isEmpty' as const },
-    { label: 'Is not empty', value: 'isNotEmpty' as const }
+    { label: 'Is empty', value: 'isEmpty' as const }
   ],
   booleanOperators: [
     { label: 'Is', value: 'eq' as const },

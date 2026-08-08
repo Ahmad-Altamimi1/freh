@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/sidebar';
 import { AppLogo, APP_NAME, APP_TAGLINE } from '@/components/layout/app-logo';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
+import { APP_CREDIT, APP_CREDIT_AFFILIATION, copyrightYear } from '@/config/app-credit';
 import { navGroups } from '@/config/nav-config';
 import { useSignOut } from '@/features/auth/components/use-sign-out';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
@@ -169,6 +170,20 @@ export default function AppSidebar({
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
+
+        {/* Collapsed to the icon rail there is no width for prose, so this is
+            dropped rather than clipped — the same treatment the sidebar's own
+            group labels get. */}
+        <div className='text-sidebar-foreground/55 border-s-2 border-primary mx-2 mt-1 mb-1 ps-2 text-[11px] leading-relaxed group-data-[collapsible=icon]:hidden'>
+          <p>{APP_CREDIT.role}</p>
+          <p className='text-sidebar-foreground text-xs font-semibold'>{APP_CREDIT.name}</p>
+          {/* The affiliation gets its own line rather than trailing the name —
+              at this width the two together wrap mid-phrase. */}
+          <p>{APP_CREDIT_AFFILIATION}</p>
+          <p className='mt-1'>
+            <span dir='ltr'>© {copyrightYear()}</span> — {APP_CREDIT.rightsReserved}
+          </p>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

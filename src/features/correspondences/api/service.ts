@@ -172,6 +172,25 @@ export async function getCorrespondenceById(id: string): Promise<CorrespondenceW
 }
 
 /**
+ * Every correspondence filed against one organization, newest first.
+ *
+ * Unpaginated by design — this backs the organization's profile document, which
+ * is a complete file rather than a page of one. Files are returned unsigned:
+ * the document lists what is attached, it does not link to it, and a signed URL
+ * printed into a PDF would be a five-minute link on a page that outlives it.
+ */
+export async function getCorrespondencesByOrganization(organizationId: string) {
+  await requirePermission(PERMISSIONS.CORRESPONDENCES_READ, NO_READ_ACCESS);
+
+  return getDb()
+    .select(SELECT_COLUMNS)
+    .from(correspondences)
+    .innerJoin(organizations, eq(correspondences.organizationId, organizations.id))
+    .where(eq(correspondences.organizationId, organizationId))
+    .orderBy(desc(correspondences.createdAt), asc(correspondences.id));
+}
+
+/**
  * Organizations that have at least one correspondence, with counts.
  *
  * Deliberately unfiltered — the picker should offer every organization that

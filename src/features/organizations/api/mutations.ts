@@ -55,26 +55,29 @@ export const updateOrganizationMembersMutation = mutationOptions({
 /**
  * Template writes invalidate only the template root — saving a report definition
  * changes no registry data, so the list, facets and report caches stay warm.
+ *
+ * Exported, and called directly by the templates card, rather than left to run
+ * only from the `onSuccess` handlers below. A caller that spreads these options
+ * and then supplies its own `onSuccess` — which the card does, to raise a toast
+ * and clear the name field — REPLACES the handler rather than adding to it, and
+ * the saved list silently stops refreshing until the page is reloaded.
  */
+export function invalidateReportTemplates() {
+  getQueryClient().invalidateQueries({ queryKey: reportTemplateKeys.all });
+}
 
 export const saveReportTemplateMutation = mutationOptions({
   mutationFn: (values: ReportTemplatePayload) => saveReportTemplate(values),
-  onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: reportTemplateKeys.all });
-  }
+  onSuccess: invalidateReportTemplates
 });
 
 export const updateReportTemplateMutation = mutationOptions({
   mutationFn: ({ id, values }: { id: string; values: ReportTemplatePayload }) =>
     updateReportTemplate(id, values),
-  onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: reportTemplateKeys.all });
-  }
+  onSuccess: invalidateReportTemplates
 });
 
 export const deleteReportTemplateMutation = mutationOptions({
   mutationFn: (id: string) => deleteReportTemplate(id),
-  onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: reportTemplateKeys.all });
-  }
+  onSuccess: invalidateReportTemplates
 });

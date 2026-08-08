@@ -27,6 +27,25 @@ export function calculateTermEnd(termStart: string, termLengthMonths: number | '
   return addMonthsUTC(termStart, termLengthMonths);
 }
 
+/** The buckets `term_end` falls into, relative to today. */
+export type TermStatus = 'active' | 'endingSoon' | 'ended' | 'unset';
+
+/**
+ * Buckets one `term_end` the same way the dashboard's SQL does.
+ *
+ * The thresholds are passed in rather than read here so a caller cannot end up
+ * classifying against a different "today" than the rest of its page — and
+ * because `TERM_END_NOTICE_DAYS` is server-only env, which this module is not.
+ * String comparison is safe and intended: `YYYY-MM-DD` sorts lexicographically
+ * in date order, which is exactly why the schema stores dates in that shape.
+ */
+export function termStatusOf(termEnd: string | null, today: string, noticeEnd: string): TermStatus {
+  if (!termEnd) return 'unset';
+  if (termEnd < today) return 'ended';
+  if (termEnd <= noticeEnd) return 'endingSoon';
+  return 'active';
+}
+
 /** `YYYY-MM-DD` for "today" in UTC — never read from local Date getters. */
 export function todayUTC(): string {
   const now = new Date();

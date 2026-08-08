@@ -24,7 +24,9 @@ import {
 } from '../../api/search-params';
 import type { Organization } from '../../api/types';
 import { ORGANIZATION_FILTER_LABELS } from '../../constants/filter-labels';
-import { ORGANIZATION_LABELS } from '../../constants/labels';
+import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../../constants/labels';
+import { readFacetValues, writeFacetValues, type FacetColumn } from '../../lib/facet-conditions';
+import { ReportFacetFilter } from '../report-facet-filter';
 import { getOrganizationColumns } from './columns';
 
 const COLUMN_ID_SET = new Set<string>(ORGANIZATION_COLUMN_IDS);
@@ -179,6 +181,15 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
     [setParams]
   );
 
+  // A facet pick narrows the result set, so the current page number stops being
+  // meaningful — reset to the first page along with the condition.
+  const onFacetChange = React.useCallback(
+    (columnId: FacetColumn, values: string[]) => {
+      void setParams({ filters: writeFacetValues(params.filters, columnId, values), page: 1 });
+    },
+    [params.filters, setParams]
+  );
+
   // Carry the exact filter state to the report and the export, so both describe
   // the same rows the table is showing.
   const currentQueryString = React.useMemo(() => {
@@ -198,6 +209,25 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
         search={searchDraft}
         onSearchChange={onSearchChange}
         searchPlaceholder={ORGANIZATION_LABELS.table.search}
+        /* Rendered after the builder's trigger. The two columns anyone actually
+           filters by get a one-click picker over their real values, rather than
+           being reachable only through three controls in the builder. */
+        children={
+          <>
+            <ReportFacetFilter
+              label={ORGANIZATION_FIELD_LABELS.district}
+              options={districtOptions}
+              selected={readFacetValues(params.filters, 'district')}
+              onChange={(values) => onFacetChange('district', values)}
+            />
+            <ReportFacetFilter
+              label={ORGANIZATION_FIELD_LABELS.classification}
+              options={classificationOptions}
+              selected={readFacetValues(params.filters, 'classification')}
+              onChange={(values) => onFacetChange('classification', values)}
+            />
+          </>
+        }
         filterList={
           <DataTableFilterList
             table={table}

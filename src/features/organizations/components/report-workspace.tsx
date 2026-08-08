@@ -9,13 +9,11 @@ import * as React from 'react';
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { usePermissions } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { formatDateAr, formatNumberAr } from '@/lib/format';
+import { formatDateAr } from '@/lib/format';
 import { getFiltersStateParser, getSortingStateParser } from '@/lib/parsers';
-import { cn } from '@/lib/utils';
 import type { ExtendedColumnFilter, JoinOperator, Option } from '@/types/data-table';
 import {
   describeFilterChips,
@@ -25,11 +23,13 @@ import {
 import { organizationFacetsQueryOptions, organizationReportRunOptions } from '../api/queries';
 import { ORGANIZATION_COLUMN_IDS } from '../api/search-params';
 import type { Organization, ReportDefinition } from '../api/types';
-import { ORGANIZATION_LABELS } from '../constants/labels';
+import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
+import { readFacetValues, writeFacetValues, type FacetColumn } from '../lib/facet-conditions';
 import { DEFAULT_REPORT_DEFINITION, encodeReportDefinition } from '../lib/report-definition';
-import { OrganizationsReport } from './organizations-report';
 import { ReportBuilder } from './report-builder';
 import { ReportCriteriaBar } from './report-criteria-bar';
+import { ReportFacetFilter } from './report-facet-filter';
+import { ReportResultsTable } from './report-results-table';
 import { ReportTemplatesCard } from './report-templates';
 import { getOrganizationColumns } from './organizations-table/columns';
 
@@ -239,25 +239,34 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
     void setParams({ q: null, filters: null, joinOperator: null });
   }, [commitSearch, setParams]);
 
-  const chips = React.useMemo(() => describeFilterChips(criteria), [criteria]);
-
-  /* ------------------------------- live count ------------------------------- */
-
-  /**
-   * The count and the distribution deliberately run with no sections selected.
-   *
-   * `grouped` and `summary` are computed regardless, while `charts` and `table`
-   * are what cost a full unpaginated row fetch — pinning sections to empty means
-   * toggling "جدول التفاصيل" does not refetch thousands of rows just to redraw a
-   * number that did not change.
-   */
-  const previewDefinition = React.useMemo<ReportDefinition>(
-    () => ({ ...definition, sections: [], columns: [] }),
-    [definition]
+  const setFacetSelection = React.useCallback(
+    (columnId: FacetColumn, values: string[]) => {
+      void setParams({ filters: writeFacetValues(params.filters, columnId, values) });
+    },
+    [params.filters, setParams]
   );
 
-  const { data: preview, isFetching } = useQuery({
-    ...organizationReportRunOptions(previewDefinition),
+  const chips = React.useMemo(() => describeFilterChips(criteria), [criteria]);
+
+  /* --------------------------------- results -------------------------------- */
+
+  /**
+   * The rows, and the count that describes them, from one query.
+   *
+   * Built from the criteria alone rather than from the live definition, even
+   * though `organizationReportRunOptions` keys on the whole object. Only
+   * `criteria` and `sections` change what the server returns here — `title`,
+   * `groupBy` and `columns` are presentation — so pinning them to constants
+   * keeps typing in the title field from evicting the cache and refetching every
+   * row. `columns` is applied in the browser, against rows already fetched.
+   */
+  const rowsDefinition = React.useMemo<ReportDefinition>(
+    () => ({ title: '', criteria, groupBy: 'district', sections: ['table'], columns: [] }),
+    [criteria]
+  );
+
+  const { data: result, isFetching } = useQuery({
+    ...organizationReportRunOptions(rowsDefinition),
     placeholderData: keepPreviousData
   });
 
@@ -277,7 +286,23 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
         chips={chips}
         onRemoveChip={onRemoveChip}
         onClearAll={onClearAll}
-        total={preview?.summary.total}
+        facets={
+          <>
+            <ReportFacetFilter
+              label={ORGANIZATION_FIELD_LABELS.district}
+              options={districtOptions}
+              selected={readFacetValues(params.filters, 'district')}
+              onChange={(values) => setFacetSelection('district', values)}
+            />
+            <ReportFacetFilter
+              label={ORGANIZATION_FIELD_LABELS.classification}
+              options={classificationOptions}
+              selected={readFacetValues(params.filters, 'classification')}
+              onChange={(values) => setFacetSelection('classification', values)}
+            />
+          </>
+        }
+        total={result?.summary.total}
         isFetching={isFetching || isPending}
         actions={
           <Button
@@ -307,12 +332,6 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
         <ReportBuilder definition={definition} onDefinitionChange={setDefinition} />
 
         <div className='flex flex-col gap-4'>
-          <DistributionCard
-            dimension={ORGANIZATION_LABELS.groupBy[definition.groupBy]}
-            grouped={preview?.grouped ?? []}
-            isFetching={isFetching}
-          />
-
           <ReportTemplatesCard definition={definition} isValid={isValid} onLoad={setDefinition} />
 
           {(canExportPdf || canExportExcel) && (
@@ -398,17 +417,14 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
         </div>
       </div>
 
-      {/* Dimmed rather than replaced while a new filter resolves: the numbers on
-          screen are still the previous answer, and swapping them for skeletons
-          on every keystroke is more disruptive than letting them fade. */}
-      <div
-        className={cn('transition-opacity', isPending && 'pointer-events-none opacity-60')}
-        aria-busy={isPending}
-      >
-        <React.Suspense fallback={<ReportSkeleton />}>
-          <OrganizationsReport filters={criteria} />
-        </React.Suspense>
-      </div>
+      {/* The output. Rows stay on screen and dim while a new filter resolves
+          rather than collapsing to a skeleton — the previous answer is still a
+          better thing to look at than a grey box on every keystroke. */}
+      <ReportResultsTable
+        rows={result?.rows ?? []}
+        columns={definition.columns}
+        isFetching={isFetching || isPending}
+      />
     </div>
   );
 }
@@ -444,78 +460,5 @@ function AppliedFiltersForPrint({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * The grouped breakdown, as proportional bars.
- *
- * The same six numbers as a bare list force the reader to compare digit strings;
- * a bar scaled to the largest bucket answers "which is biggest, and by how much"
- * without any arithmetic. It is a preview of the grouping the printed document
- * will use, which is why it follows `definition.groupBy` rather than a fixed
- * dimension.
- */
-function DistributionCard({
-  dimension,
-  grouped,
-  isFetching
-}: {
-  dimension: string;
-  grouped: { label: string; count: number }[];
-  isFetching: boolean;
-}) {
-  const rows = grouped.slice(0, 6);
-  const max = rows.reduce((highest, row) => Math.max(highest, row.count), 0);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className='text-base'>{BUILDER.distribution}</CardTitle>
-        <CardDescription>{dimension}</CardDescription>
-      </CardHeader>
-      <CardContent aria-busy={isFetching}>
-        {rows.length === 0 ? (
-          <p className='text-muted-foreground text-sm'>{ORGANIZATION_LABELS.table.noResults}</p>
-        ) : (
-          <ul className='flex flex-col gap-2.5'>
-            {rows.map((row) => (
-              <li key={row.label} className='flex flex-col gap-1'>
-                <div className='flex items-baseline justify-between gap-2 text-sm'>
-                  <span className='min-w-0 truncate'>{row.label}</span>
-                  <span dir='ltr' className='text-muted-foreground shrink-0 tabular-nums'>
-                    {formatNumberAr(row.count)}
-                  </span>
-                </div>
-                <div className='bg-muted h-1.5 overflow-hidden rounded-full'>
-                  <div
-                    className='bg-primary h-full rounded-full transition-[width] duration-300'
-                    style={{
-                      width: max > 0 ? `${(row.count / max) * 100}%` : '0%'
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ReportSkeleton() {
-  return (
-    <div className='flex flex-col gap-4'>
-      <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className='h-24 w-full' />
-        ))}
-      </div>
-      <div className='grid gap-4 lg:grid-cols-2'>
-        <Skeleton className='h-80 w-full' />
-        <Skeleton className='h-80 w-full' />
-      </div>
-    </div>
   );
 }

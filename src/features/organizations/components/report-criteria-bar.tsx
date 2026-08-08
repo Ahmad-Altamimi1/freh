@@ -52,6 +52,12 @@ interface ReportCriteriaBarProps {
   chips: FilterChip[];
   onRemoveChip: (id: string) => void;
   onClearAll: () => void;
+  /**
+   * The two facet pickers, rendered ahead of the builder's trigger. Passed in
+   * rather than built here so this component stays layout-only and the URL
+   * writes all happen in one place.
+   */
+  facets?: React.ReactNode;
   /** Rows matching the criteria; `undefined` until the first count arrives. */
   total: number | undefined;
   isFetching: boolean;
@@ -70,6 +76,7 @@ export function ReportCriteriaBar({
   chips,
   onRemoveChip,
   onClearAll,
+  facets,
   total,
   isFetching,
   actions
@@ -103,6 +110,8 @@ export function ReportCriteriaBar({
             className='h-9 ps-8'
           />
         </div>
+
+        {facets}
 
         <DataTableFilterList
           table={table}

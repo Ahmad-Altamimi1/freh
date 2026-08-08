@@ -1,0 +1,183 @@
+/**
+ * Ministry of Culture (وزارة الثقافة) brand theme.
+ *
+ * Palette anchored to the ministry's own visual identity:
+ *   - Primary  — deep maroon/burgundy (#5A1213), the heading colour used on
+ *     culture.gov.jo. Reads as official and dignified.
+ *   - Destructive / chart red — the Jordanian flag red (#CA2F3F) from the logo.
+ *   - A flag green sits in the chart ramp for the culture/heritage note.
+ *   - Surfaces are a warm sandstone cream rather than a cold white, echoing the
+ *     limestone architecture of the Irbid directorate buildings.
+ *
+ * The sidebar is a deep maroon slab in both light and dark — the single loudest
+ * "this is the Ministry of Culture" signal in the shell.
+ *
+ * OKLCH: perceptually uniform, so nudging lightness never shifts the hue.
+ */
+[data-theme='thaqafa'] {
+  /* A warm sandstone canvas (--background) with bright near-white cards
+     (--card) floating on top — the layering is what gives the light theme depth
+     instead of the flat cream-on-cream it had. Keep --card noticeably lighter
+     than --background or the "float" collapses. */
+  --background: oklch(0.95 0.014 78);
+  --foreground: oklch(0.22 0.02 30);
+  --card: oklch(0.995 0.004 85);
+  --card-foreground: oklch(0.22 0.02 30);
+  --popover: oklch(0.995 0.004 85);
+  --popover-foreground: oklch(0.22 0.02 30);
+  --primary: oklch(0.35 0.1 22);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --secondary: oklch(0.915 0.016 74);
+  --secondary-foreground: oklch(0.3 0.03 28);
+  --muted: oklch(0.925 0.015 76);
+  --muted-foreground: oklch(0.47 0.02 40);
+  --accent: oklch(0.9 0.024 60);
+  --accent-foreground: oklch(0.32 0.06 25);
+  --destructive: oklch(0.55 0.19 20);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.87 0.014 72);
+  --input: oklch(0.89 0.014 72);
+  --ring: oklch(0.35 0.1 22);
+  --chart-1: oklch(0.42 0.11 22);
+  --chart-2: oklch(0.52 0.12 155);
+  --chart-3: oklch(0.58 0.18 20);
+  --chart-4: oklch(0.74 0.11 75);
+  --chart-5: oklch(0.55 0.05 45);
+  /* A light, warm sidebar that belongs to the same family as the sand canvas —
+     the dark maroon slab read as a heavy, disjoint block. The maroon now shows
+     only where it counts: the active/hover item (bg-sidebar-accent) fills with
+     brand maroon and cream text, a pop of identity rather than a wall of it. */
+  --sidebar: oklch(0.975 0.009 82);
+  --sidebar-foreground: oklch(0.32 0.025 30);
+  --sidebar-primary: oklch(0.35 0.1 22);
+  --sidebar-primary-foreground: oklch(0.98 0.01 85);
+  --sidebar-accent: oklch(0.35 0.1 22);
+  --sidebar-accent-foreground: oklch(0.98 0.01 85);
+  --sidebar-border: oklch(0.88 0.014 72);
+  --sidebar-ring: oklch(0.35 0.1 22);
+  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius: 0.5rem;
+  --shadow-x: 0px;
+  --shadow-y: 1px;
+  --shadow-blur: 2px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.18;
+  --shadow-color: hsl(20 30% 10%);
+  --shadow-2xs: 0px 1px 2px 0px hsl(20 30% 10% / 0.08);
+  --shadow-xs: 0px 1px 2px 0px hsl(20 30% 10% / 0.08);
+  --shadow-sm: 0px 1px 2px 0px hsl(20 30% 10% / 0.16), 0px 1px 2px -1px hsl(20 30% 10% / 0.16);
+  --shadow: 0px 1px 2px 0px hsl(20 30% 10% / 0.16), 0px 1px 2px -1px hsl(20 30% 10% / 0.16);
+  --shadow-md: 0px 1px 2px 0px hsl(20 30% 10% / 0.16), 0px 2px 4px -1px hsl(20 30% 10% / 0.16);
+  --shadow-lg: 0px 1px 2px 0px hsl(20 30% 10% / 0.16), 0px 4px 6px -1px hsl(20 30% 10% / 0.16);
+  --shadow-xl: 0px 1px 2px 0px hsl(20 30% 10% / 0.16), 0px 8px 10px -1px hsl(20 30% 10% / 0.16);
+  --shadow-2xl: 0px 1px 2px 0px hsl(20 30% 10% / 0.4);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+[data-theme='thaqafa'].dark {
+  --background: oklch(0.17 0.012 30);
+  --foreground: oklch(0.96 0.006 82);
+  --card: oklch(0.21 0.014 30);
+  --card-foreground: oklch(0.96 0.006 82);
+  --popover: oklch(0.23 0.014 30);
+  --popover-foreground: oklch(0.96 0.006 82);
+  --primary: oklch(0.6 0.16 22);
+  --primary-foreground: oklch(0.16 0.01 30);
+  --secondary: oklch(0.27 0.016 30);
+  --secondary-foreground: oklch(0.95 0.006 82);
+  --muted: oklch(0.25 0.014 30);
+  --muted-foreground: oklch(0.72 0.015 60);
+  --accent: oklch(0.33 0.03 25);
+  --accent-foreground: oklch(0.96 0.006 82);
+  --destructive: oklch(0.62 0.19 22);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.3 0.016 30);
+  --input: oklch(0.34 0.016 30);
+  --ring: oklch(0.6 0.16 22);
+  --chart-1: oklch(0.58 0.16 22);
+  --chart-2: oklch(0.6 0.13 155);
+  --chart-3: oklch(0.64 0.18 20);
+  --chart-4: oklch(0.76 0.12 75);
+  --chart-5: oklch(0.62 0.06 45);
+  --sidebar: oklch(0.19 0.02 25);
+  --sidebar-foreground: oklch(0.95 0.008 82);
+  --sidebar-primary: oklch(0.6 0.16 22);
+  --sidebar-primary-foreground: oklch(0.98 0.005 82);
+  --sidebar-accent: oklch(0.27 0.025 25);
+  --sidebar-accent-foreground: oklch(0.96 0.006 82);
+  --sidebar-border: oklch(0.29 0.025 25);
+  --sidebar-ring: oklch(0.6 0.16 22);
+  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius: 0.5rem;
+  --shadow-x: 0px;
+  --shadow-y: 1px;
+  --shadow-blur: 2px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.18;
+  --shadow-color: hsl(0 0% 0%);
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+  --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.09);
+  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+  --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.18);
+  --shadow-md: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.18);
+  --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+  --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.18), 0px 8px 10px -1px hsl(0 0% 0% / 0.18);
+  --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.45);
+}
+
+[data-theme='thaqafa'] {
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --font-serif: var(--font-serif);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --shadow-2xs: var(--shadow-2xs);
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow: var(--shadow);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --shadow-xl: var(--shadow-xl);
+    --shadow-2xl: var(--shadow-2xl);
+  }
+}

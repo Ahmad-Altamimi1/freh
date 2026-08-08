@@ -8,4 +8,4 @@
  * To swap themes, add the CSS file, import it in `src/styles/theme.css`, and
  * change this value. See docs/themes.md.
  */
-export const DEFAULT_THEME = 'vercel';
+export const DEFAULT_THEME = 'thaqafa';

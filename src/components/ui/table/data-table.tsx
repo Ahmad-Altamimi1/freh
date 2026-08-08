@@ -42,7 +42,7 @@ export function DataTable<TData>({
       <div className='relative flex flex-1' aria-busy={isPending}>
         <div
           className={cn(
-            'absolute inset-0 flex overflow-hidden rounded-lg border transition-opacity duration-200',
+            'bg-card absolute inset-0 flex overflow-hidden rounded-lg border shadow-sm transition-opacity duration-200',
             isPending && 'pointer-events-none opacity-50'
           )}
         >

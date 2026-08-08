@@ -7,41 +7,64 @@ import { SignInForm } from './sign-in-form';
 
 export default function SignInViewPage({ redirectTo }: { redirectTo?: string }) {
   return (
-    <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <div className='relative hidden h-full flex-col p-10 lg:flex dark:border-r'>
-        <div className='bg-sidebar absolute inset-0' />
-        <div className='text-sidebar-foreground relative z-20 flex items-center gap-3'>
-          <AppLogo className='size-10' />
-          <div className='grid leading-tight'>
-            <span className='text-lg font-medium'>{APP_NAME}</span>
-            <span className='text-sidebar-foreground/70 text-sm'>{APP_TAGLINE}</span>
-          </div>
-        </div>
+    <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-5 lg:px-0'>
+      {/* The brand panel: a large photo of the directorate under a maroon scrim.
+          It claims 3 of 5 columns so the image reads as a hero, not a rail.
+          `bg-sidebar` is the fallback colour — if `/login-hero.jpg` is absent the
+          photo layer is simply empty and the panel shows as a solid maroon slab,
+          which still looks deliberate. */}
+      <div className='bg-sidebar relative hidden h-full flex-col justify-between overflow-hidden p-10 lg:col-span-3 lg:flex'>
+        {/* Photo layer. A plain CSS background rather than next/image so a missing
+            file degrades to the maroon fallback instead of throwing. */}
+        <div
+          className='absolute inset-0 bg-cover bg-center'
+          style={{ backgroundImage: 'url(/login-hero.jpeg)' }}
+        />
+        {/* Brand tint — multiplies the photo toward the sidebar maroon so the
+            hero belongs to the identity rather than sitting as a stock photo. */}
+        <div className='bg-sidebar/55 absolute inset-0 mix-blend-multiply' />
+        {/* Legibility scrim — darker at top and bottom where text sits. */}
+        <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/45' />
+
+        {/* Interactive grid, laid over the photo in faint white so it reads as a
+            deliberate overlay rather than the grey default. The radial mask fades
+            it out at the edges; content sits above at z-20 and stays clickable. */}
         <InteractiveGridPattern
           className={cn(
-            'mask-[radial-gradient(400px_circle_at_center,white,transparent)]',
-            'inset-x-0 inset-y-[0%] h-full skew-y-12'
+            'mask-[radial-gradient(500px_circle_at_center,white,transparent)]',
+            'inset-0 h-full w-full skew-y-12 border-white/10'
           )}
+          squaresClassName='stroke-white/15'
         />
 
-        {/* The credit claims the panel's dead middle rather than hiding in a
-            corner — `flex-1` between the logo and the rights line centres it in
-            everything left over. `pointer-events-none` hands the pointer back to
-            the grid pattern underneath, which is hover-interactive. */}
-        <div className='text-sidebar-foreground pointer-events-none relative z-20 flex flex-1 items-center'>
-          <CreditBlock />
+        <div className='relative z-20 flex items-center gap-3 text-white'>
+          <AppLogo className='size-11' />
+          <div className='grid leading-tight'>
+            <span className='text-lg font-semibold'>{APP_NAME}</span>
+            <span className='text-sm text-white/75'>{APP_TAGLINE}</span>
+          </div>
         </div>
 
-        <p className='text-sidebar-foreground/50 relative z-20 text-xs'>
-          <span dir='ltr'>© {copyrightYear()}</span> — {APP_CREDIT.rightsReserved}
-        </p>
+        <div className='relative z-20 text-white'>
+          <h2 className='text-3xl leading-snug font-bold drop-shadow-sm'>{APP_TAGLINE}</h2>
+          <div className='mt-6'>
+            <CreditBlock />
+          </div>
+          <p className='mt-6 text-xs text-white/60'>
+            <span dir='ltr'>© {copyrightYear()}</span> — {APP_CREDIT.rightsReserved}
+          </p>
+        </div>
       </div>
 
-      <div className='flex h-full items-center justify-center p-4 lg:p-8'>
+      <div className='flex h-full items-center justify-center p-4 lg:col-span-2 lg:p-8'>
         <div className='flex w-full max-w-sm flex-col justify-center space-y-6'>
-          <div className='flex flex-col space-y-2 text-center'>
-            <h1 className='text-2xl font-semibold tracking-tight'>تسجيل الدخول</h1>
-            <p className='text-muted-foreground text-sm'>أدخل بياناتك للوصول إلى لوحة التحكم</p>
+          <div className='flex flex-col items-center space-y-4 text-center'>
+            <AppLogo className='size-16' />
+            <div>
+              <p className='text-muted-foreground text-sm font-medium'>وزارة الثقافة</p>
+              <h1 className='text-2xl font-bold tracking-tight'>نظام الهيئات الثقافية</h1>
+              <p className='text-muted-foreground mt-1 text-sm'>مديرية ثقافة اربد</p>
+            </div>
           </div>
 
           <SignInForm redirectTo={redirectTo} />
@@ -87,6 +110,10 @@ export default function SignInViewPage({ redirectTo }: { redirectTo?: string }) 
  * lands on the name rather than reading a run-on sentence — the name is the
  * only line at full contrast, and the only one carrying real size.
  *
+ * `compact` renders the on-theme version for the mobile footer (muted tokens on
+ * a cream surface). The default renders over the hero photo, so it forces white
+ * text and a cream accent rule regardless of theme.
+ *
  * Two notes on the styling:
  * - The accent rule is `border-s`; a physical `border-l` lands on the wrong
  *   edge under `dir='rtl'`.
@@ -95,15 +122,21 @@ export default function SignInViewPage({ redirectTo }: { redirectTo?: string }) 
  *   word stops reading as a word.
  */
 function CreditBlock({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className='border-primary border-s-4 ps-4'>
+        <p className='text-xs opacity-60'>{APP_CREDIT.role}</p>
+        <p className='mt-1 text-xl leading-tight font-bold'>{APP_CREDIT.name}</p>
+        <p className='mt-2 text-xs opacity-75'>{APP_CREDIT_AFFILIATION}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn('border-s-4 border-primary', compact ? 'ps-4' : 'ps-6')}>
-      <p className={cn('opacity-60', compact ? 'text-xs' : 'text-sm')}>{APP_CREDIT.role}</p>
-      <p className={cn('mt-1 leading-tight font-bold', compact ? 'text-xl' : 'text-4xl')}>
-        {APP_CREDIT.name}
-      </p>
-      <p className={cn('mt-2 opacity-75', compact ? 'text-xs' : 'text-base')}>
-        {APP_CREDIT_AFFILIATION}
-      </p>
+    <div className='border-s-4 border-white/60 ps-6 text-white'>
+      <p className='text-sm text-white/70'>{APP_CREDIT.role}</p>
+      <p className='mt-1 text-2xl leading-tight font-bold'>{APP_CREDIT.name}</p>
+      <p className='mt-2 text-base text-white/80'>{APP_CREDIT_AFFILIATION}</p>
     </div>
   );
 }

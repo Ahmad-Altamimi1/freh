@@ -20,7 +20,7 @@ import {
 import { useCan } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
-import { setRenewalStageMutation } from '../api/mutations';
+import { invalidateRenewals, setRenewalStageMutation } from '../api/mutations';
 import { renewalBoardQueryOptions } from '../api/queries';
 import { FINAL_RENEWAL_STAGE, RENEWAL_STAGES } from '../api/types';
 import type { RenewalCard, RenewalStage } from '../api/types';
@@ -60,6 +60,10 @@ export function RenewalBoard() {
   const mutation = useMutation({
     ...setRenewalStageMutation,
     onSuccess: ({ stage }) => {
+      // Spreading the options above and then supplying our own onSuccess
+      // replaces theirs, so the invalidation is re-run here by hand — otherwise
+      // the card moves in the DB but the board doesn't refetch.
+      invalidateRenewals();
       toast.success(RENEWAL_LABELS.toast.moved(RENEWAL_STAGE_LABELS[stage]), {
         // Closing a renewal without entering the new board leaves the registry
         // saying what the previous term said, which is the one way this whole
@@ -112,13 +116,16 @@ export function RenewalBoard() {
           noticeDays={board.noticeDays}
         />
 
-        {/* Horizontal scroll rather than a wrapping grid: the columns are a
-            sequence, and wrapping one onto the next line breaks the reading of
-            the procedure as a single line of work. */}
-        <div className='-mx-2 overflow-x-auto px-2 pb-2'>
-          <div className='flex min-w-max gap-4'>
+        {/* Fluid columns: `flex-1` lets the seven stages share the width evenly
+            when they fit, so a wide screen has no dead space and a narrow one
+            scrolls instead of squashing. `min-w-0` on the scroll region keeps
+            that scroll inside it rather than stretching the whole page. The
+            columns stay one horizontal sequence — wrapping them would break the
+            left-to-right reading of the procedure. */}
+        <div className='-mx-2 min-w-0 overflow-x-auto px-2 pb-2'>
+          <div className='flex gap-3'>
             {board.columns.map((column) => (
-              <section key={column.stage} className='w-72 shrink-0'>
+              <section key={column.stage} className='min-w-[13rem] flex-1'>
                 <header className='mb-2 px-1'>
                   <div className='flex items-center justify-between gap-2'>
                     <h2 className='text-sm font-semibold'>{RENEWAL_STAGE_LABELS[column.stage]}</h2>
@@ -175,7 +182,7 @@ function SummaryStrip({
     <section className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
       <div className='grid grid-cols-3 gap-px bg-border'>
         {cells.map((cell) => (
-          <div key={cell.label} className='bg-card px-5 py-4'>
+          <div key={cell.label} className='bg-card px-3 py-3 sm:px-5 sm:py-4'>
             <p className='text-xs font-medium text-muted-foreground'>{cell.label}</p>
             <p dir='ltr' className={`mt-1.5 text-xl font-semibold tabular-nums ${cell.tone}`}>
               {formatNumberAr(cell.value)}

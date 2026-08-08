@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sheet';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { formatDateAr } from '@/lib/format';
-import { updateRenewalDetailsMutation } from '../api/mutations';
+import { invalidateRenewals, updateRenewalDetailsMutation } from '../api/mutations';
 import type { RenewalCard } from '../api/types';
 import { RENEWAL_LABELS } from '../constants/labels';
 
@@ -46,6 +46,9 @@ export function RenewalDetailsSheet({ card, open, onOpenChange }: RenewalDetails
   const mutation = useMutation({
     ...updateRenewalDetailsMutation,
     onSuccess: () => {
+      // Re-run the invalidation the spread options carried — our onSuccess
+      // replaces theirs, so without this the saved dates never reach the board.
+      invalidateRenewals();
       toast.success(RENEWAL_LABELS.toast.saved);
       onOpenChange(false);
     },

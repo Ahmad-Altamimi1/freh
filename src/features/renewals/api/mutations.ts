@@ -7,28 +7,29 @@ import { setRenewalStage, updateRenewalDetails } from './service';
 import type { RenewalDetailsPayload, RenewalStagePayload } from './types';
 
 /**
- * Both writes invalidate the board root — a move changes which column a card is
- * in, and the summary counts above it.
+ * Refreshes the board after a write — a move changes which column a card is in,
+ * the summary counts above it, and the dashboard's term panel (which counts the
+ * same societies off the registry root).
  *
- * They do NOT invalidate `organizationKeys.all`, with one exception below: a
- * renewal records what the directorate did, not what the registry says, so the
- * listing and the report are unaffected and refetching them would be waste.
+ * Exported and called directly by the components rather than left to run only
+ * from the `onSuccess` handlers below. A caller that spreads these options and
+ * then supplies its own `onSuccess` — which both the board and the details sheet
+ * do, to raise a toast and close the sheet — REPLACES the handler rather than
+ * adding to it, so without this the board silently stops refreshing until the
+ * page is reloaded. Same footgun, and same fix, as `invalidateReportTemplates`.
  */
-function invalidateBoard() {
-  getQueryClient().invalidateQueries({ queryKey: renewalKeys.all });
+export function invalidateRenewals() {
+  const queryClient = getQueryClient();
+  queryClient.invalidateQueries({ queryKey: renewalKeys.all });
+  queryClient.invalidateQueries({ queryKey: organizationKeys.dashboard() });
 }
 
 export const setRenewalStageMutation = mutationOptions({
   mutationFn: (payload: RenewalStagePayload) => setRenewalStage(payload),
-  onSuccess: () => {
-    invalidateBoard();
-    // The dashboard's term panel counts the same societies this board tracks,
-    // and it hangs off the registry root.
-    getQueryClient().invalidateQueries({ queryKey: organizationKeys.dashboard() });
-  }
+  onSuccess: invalidateRenewals
 });
 
 export const updateRenewalDetailsMutation = mutationOptions({
   mutationFn: (payload: RenewalDetailsPayload) => updateRenewalDetails(payload),
-  onSuccess: invalidateBoard
+  onSuccess: invalidateRenewals
 });

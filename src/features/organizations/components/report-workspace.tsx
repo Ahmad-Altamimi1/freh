@@ -26,6 +26,8 @@ import type { Organization, ReportDefinition } from '../api/types';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
 import { readFacetValues, writeFacetValues, type FacetColumn } from '../lib/facet-conditions';
 import { DEFAULT_REPORT_DEFINITION, encodeReportDefinition } from '../lib/report-definition';
+import type { ParsedReportQuery } from '../lib/report-query';
+import { ReportAskBar } from './report-ask-bar';
 import { ReportBuilder } from './report-builder';
 import { ReportCriteriaBar } from './report-criteria-bar';
 import { ReportFacetFilter } from './report-facet-filter';
@@ -246,6 +248,34 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
     [params.filters, setParams]
   );
 
+  /**
+   * Applies a parsed natural-language query.
+   *
+   * The criteria (the "which rows") go to the URL like any other filter edit, so
+   * the resulting report is shareable and restorable; the shape (title, grouping)
+   * goes to the draft definition. Both use the exact same setters the manual
+   * controls do — the parser is an input method, not a separate code path — so a
+   * clause it missed is fixed with the ordinary filter chips.
+   */
+  const onAskApply = React.useCallback(
+    (parsed: ParsedReportQuery) => {
+      const { q, filters, joinOperator } = parsed.criteria;
+      setSearchDraft(q ?? '');
+      commitSearch(q ?? '');
+      void setParams({
+        q: q || null,
+        filters: filters && filters.length > 0 ? filters : null,
+        joinOperator: joinOperator ?? 'and'
+      });
+      setDefinition((current) => ({
+        ...current,
+        title: parsed.title || current.title,
+        groupBy: parsed.groupBy ?? current.groupBy
+      }));
+    },
+    [commitSearch, setParams]
+  );
+
   const chips = React.useMemo(() => describeFilterChips(criteria), [criteria]);
 
   /* --------------------------------- results -------------------------------- */
@@ -275,6 +305,12 @@ export function ReportWorkspace({ generatedAt }: ReportWorkspaceProps) {
 
   return (
     <div className='flex flex-col gap-4'>
+      <ReportAskBar
+        districts={facets.districts.map((facet) => facet.value)}
+        classifications={facets.classifications.map((facet) => facet.value)}
+        onApply={onAskApply}
+      />
+
       <ReportCriteriaBar
         table={filterTable}
         search={searchDraft}

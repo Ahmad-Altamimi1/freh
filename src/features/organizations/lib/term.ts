@@ -27,6 +27,21 @@ export function calculateTermEnd(termStart: string, termLengthMonths: number | '
   return addMonthsUTC(termStart, termLengthMonths);
 }
 
+/**
+ * Whole days from `fromISO` to `toISO`, positive when `to` is later.
+ *
+ * `Date.UTC` integer math for the same reason the rest of this module avoids
+ * `Date` arithmetic: both operands are calendar dates, and any path through
+ * local getters shifts the answer by a day around midnight.
+ */
+export function daysBetweenUTC(fromISO: string, toISO: string): number {
+  const [fromYear, fromMonth, fromDay] = fromISO.split('-').map(Number);
+  const [toYear, toMonth, toDay] = toISO.split('-').map(Number);
+  const from = Date.UTC(fromYear, fromMonth - 1, fromDay);
+  const to = Date.UTC(toYear, toMonth - 1, toDay);
+  return Math.round((to - from) / 86_400_000);
+}
+
 /** The buckets `term_end` falls into, relative to today. */
 export type TermStatus = 'active' | 'endingSoon' | 'ended' | 'unset';
 

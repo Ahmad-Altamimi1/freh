@@ -14,5 +14,6 @@
 export * from './organizations';
 export * from './notifications';
 export * from './correspondences';
+export * from './board-renewals';
 export * from './report-templates';
 export * from './access-control';

@@ -299,6 +299,23 @@ export const ORGANIZATION_LABELS = {
     output: 'الإخراج',
     outputBlocked: 'اختر قسمًا وعمودًا واحدًا على الأقل لتفعيل التصدير.'
   },
+  /** «اسأل السجل» — natural-language query bar. */
+  ask: {
+    label: 'اسأل السجل',
+    description: 'اكتب طلبك بالعربية وسنحوّله إلى تقرير — عدّله بعدها كيفما تشاء.',
+    placeholder: 'مثال: الجمعيات في إربد التي انتهت دورتها وبدون مدير',
+    submit: 'إنشاء',
+    understood: 'فُهم من طلبك:',
+    /** Shown when the parser recognised nothing structural and fell back to search. */
+    fallback:
+      'لم نتعرّف على معايير محددة، فبحثنا عن النص كما هو. جرّب ذكر اللواء أو حالة الدورة أو حقلًا ناقصًا.',
+    examplesTitle: 'أمثلة',
+    examples: [
+      'الجمعيات في إربد وبدون رقم هاتف',
+      'حسب التصنيف، الدورة منتهية',
+      'تأسست بعد 2015 حسب السنة'
+    ]
+  },
   /** Grouping dimensions offered by the builder. */
   groupBy: {
     district: 'اللواء',

@@ -11,6 +11,7 @@ const segmentLabels: Record<string, string> = {
   reports: 'التقارير',
   'import-members': 'استيراد الأعضاء',
   correspondences: 'المراسلات',
+  renewals: 'تجديد الهيئات',
   notifications: 'الإشعارات',
   users: 'المستخدمون',
   settings: 'الإعدادات',

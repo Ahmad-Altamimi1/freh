@@ -37,6 +37,12 @@ export const PERMISSIONS = {
   /** Edit the member roster attached to an organization. */
   MEMBERS_UPDATE: 'members:update',
 
+  // ── Board renewals (تجديد الهيئات) ────────────────────────────────────
+  /** See the renewal board and where every society stands in the cycle. */
+  RENEWALS_READ: 'renewals:read',
+  /** Move a renewal between stages and record its dates, delegate and notes. */
+  RENEWALS_MANAGE: 'renewals:manage',
+
   // ── Correspondences ───────────────────────────────────────────────────
   CORRESPONDENCES_READ: 'correspondences:read',
   CORRESPONDENCES_CREATE: 'correspondences:create',
@@ -117,6 +123,22 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         permission: PERMISSIONS.ORGANIZATIONS_EXPORT,
         label: 'تصدير السجل',
         description: 'تنزيل جدول الجمعيات كملف إكسل، وتنزيل قوالب الاستيراد.'
+      }
+    ]
+  },
+  {
+    key: 'renewals',
+    label: 'تجديد الهيئات',
+    permissions: [
+      {
+        permission: PERMISSIONS.RENEWALS_READ,
+        label: 'عرض لوحة التجديد',
+        description: 'متابعة الجمعيات المستحقة للانتخاب وموقع كل واحدة من المراحل.'
+      },
+      {
+        permission: PERMISSIONS.RENEWALS_MANAGE,
+        label: 'إدارة مسار التجديد',
+        description: 'نقل الجمعية بين المراحل وتسجيل موعد الانتخاب والمندوب والملاحظات.'
       }
     ]
   },
@@ -202,6 +224,7 @@ export type RolePreset = {
 const READ_ONLY: Permission[] = [
   PERMISSIONS.ORGANIZATIONS_READ,
   PERMISSIONS.CORRESPONDENCES_READ,
+  PERMISSIONS.RENEWALS_READ,
   PERMISSIONS.NOTIFICATIONS_READ
 ];
 
@@ -226,6 +249,7 @@ export const ROLE_PRESETS: RolePreset[] = [
       PERMISSIONS.ORGANIZATIONS_IMPORT,
       PERMISSIONS.ORGANIZATIONS_EXPORT,
       PERMISSIONS.MEMBERS_UPDATE,
+      PERMISSIONS.RENEWALS_MANAGE,
       PERMISSIONS.CORRESPONDENCES_CREATE,
       PERMISSIONS.CORRESPONDENCES_UPDATE,
       PERMISSIONS.CORRESPONDENCES_DELETE,

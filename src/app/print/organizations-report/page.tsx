@@ -6,7 +6,7 @@ import { ReportDocument } from '@/features/organizations/components/report-docum
 import { decodeReportDefinition } from '@/features/organizations/lib/report-definition';
 import { requirePagePermission } from '@/lib/auth/access';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { AutoPrint } from './auto-print';
+import { AutoPrint } from '../auto-print';
 
 export const metadata = {
   title: 'تقرير الجمعيات',

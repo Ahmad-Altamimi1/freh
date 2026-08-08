@@ -9,8 +9,17 @@ import * as React from 'react';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useBreadcrumbOverride } from '@/hooks/use-breadcrumbs';
+import { usePermissions } from '@/hooks/use-permissions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { organizationByIdOptions } from '../api/queries';
 import { deleteOrganizationMutation } from '../api/mutations';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
@@ -23,7 +32,7 @@ interface OrganizationDetailPageProps {
   organizationId: string;
 }
 
-const { detail: DETAIL_LABELS } = ORGANIZATION_LABELS;
+const { detail: DETAIL_LABELS, profile: PROFILE_LABELS } = ORGANIZATION_LABELS;
 
 /**
  * Whole months between two `YYYY-MM-DD` strings, floored.
@@ -60,6 +69,7 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const { setTitle: setBreadcrumbTitle } = useBreadcrumbOverride();
+  const canExportPdf = usePermissions().can(PERMISSIONS.REPORTS_EXPORT_PDF);
 
   const { data: organization } = useSuspenseQuery(organizationByIdOptions(organizationId));
 
@@ -225,10 +235,56 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
             {ORGANIZATION_LABELS.actions.backToList}
           </Button>
 
-          <Button onClick={() => setEditOpen(true)} variant='outline' size='sm'>
-            <Icons.edit className='size-4' />
-            {ORGANIZATION_LABELS.actions.edit}
-          </Button>
+          <div className='flex items-center gap-2'>
+            {/* Gated on the PDF permission rather than on "can see this page":
+                the preview route IS the document, and Ctrl+P there produces the
+                same file the download does. */}
+            {canExportPdf && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  render={<Button variant='outline' size='sm' />}
+                  title={PROFILE_LABELS.actionHint}
+                >
+                  <Icons.fileTypePdf className='size-4' />
+                  {PROFILE_LABELS.action}
+                  <Icons.chevronDown className='size-3.5 text-muted-foreground' />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      render={
+                        <a
+                          href={`/print/organization-profile/${organization.id}`}
+                          target='_blank'
+                          rel='noreferrer'
+                          aria-label={PROFILE_LABELS.preview}
+                        />
+                      }
+                    >
+                      <Icons.printer className='size-4' />
+                      {PROFILE_LABELS.preview}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      render={
+                        <a
+                          href={`/api/organizations/${organization.id}/profile/pdf`}
+                          aria-label={PROFILE_LABELS.download}
+                        />
+                      }
+                    >
+                      <Icons.download className='size-4' />
+                      {PROFILE_LABELS.download}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <Button onClick={() => setEditOpen(true)} variant='outline' size='sm'>
+              <Icons.edit className='size-4' />
+              {ORGANIZATION_LABELS.actions.edit}
+            </Button>
+          </div>
         </div>
 
         {/* 2. Stats — derived at-a-glance values, not a repeat of the record */}

@@ -49,6 +49,15 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'تجديد الهيئات',
+        url: '/dashboard/renewals',
+        icon: 'refresh',
+        isActive: false,
+        shortcut: ['t', 'h'],
+        access: { permissions: ['renewals:read'] },
+        items: []
+      },
+      {
         title: 'الإشعارات',
         url: '/dashboard/notifications',
         icon: 'notification',

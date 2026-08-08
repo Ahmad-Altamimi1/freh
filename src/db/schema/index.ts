@@ -14,3 +14,5 @@
 export * from './organizations';
 export * from './notifications';
 export * from './correspondences';
+export * from './report-templates';
+export * from './access-control';

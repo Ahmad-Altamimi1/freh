@@ -6,6 +6,7 @@ import { SessionProvider } from '@/components/layout/session-provider';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { BreadcrumbOverrideProvider } from '@/hooks/use-breadcrumbs';
+import { getEffectiveAccess } from '@/lib/auth/access';
 import { requireUser, toSessionUser } from '@/lib/auth/session';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
@@ -28,7 +29,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
-  const sessionUser = toSessionUser(user);
+  // Roles and permissions come from the database, not the JWT — so a grant
+  // changed a moment ago is reflected on this render rather than whenever the
+  // user's token next refreshes.
+  const access = await getEffectiveAccess();
+  const sessionUser = toSessionUser(user, access);
   return (
     <SessionProvider user={sessionUser}>
       <KBar>

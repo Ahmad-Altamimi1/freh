@@ -56,7 +56,12 @@ export function DataTable<TData>({
                         key={header.id}
                         colSpan={header.colSpan}
                         style={{
-                          ...getCommonPinningStyles({ column: header.column })
+                          // The header row is `bg-muted`; a pinned cell has to
+                          // paint the same colour or it reads as a white patch.
+                          ...getCommonPinningStyles({
+                            column: header.column,
+                            background: 'var(--muted)'
+                          })
                         }}
                       >
                         {header.isPlaceholder

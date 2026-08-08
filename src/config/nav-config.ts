@@ -7,9 +7,11 @@ import { NavGroup } from '@/types';
  * Items are organized into groups, each rendered with a SidebarGroupLabel.
  *
  * RBAC Access Control:
- * An item's optional `access` property controls visibility. Roles and
- * permissions are read from the Supabase user's `app_metadata` — see
- * `@/lib/auth/roles` for how to set them.
+ * An item's optional `access` property controls visibility. Permissions are
+ * resolved from the roles a user holds in the database — see
+ * `@/lib/auth/permissions` for the catalog and `docs/rbac.md` for the whole
+ * system. Prefer `permissions` over `anyRole`: a role name is a moving target
+ * an administrator can rename or retire, a permission is the capability itself.
  *
  * Examples:
  *
@@ -30,24 +32,30 @@ export const navGroups: NavGroup[] = [
     label: 'السجل',
     items: [
       {
+        title: 'لوحة التحكم',
+        url: '/dashboard/overview',
+        icon: 'dashboard',
+        isActive: false,
+        shortcut: ['d', 'd'],
+        items: []
+      },
+      {
         title: 'الجمعيات',
-        url: '#',
+        url: '/dashboard/organizations',
         icon: 'building',
-        isActive: true,
-        items: [
-          {
-            title: 'كل الجمعيات',
-            url: '/dashboard/organizations',
-            icon: 'building',
-            shortcut: ['o', 'o']
-          },
-          {
-            title: 'قرب انتهاء الدورة',
-            url: '/dashboard/organizations/ending-soon',
-            icon: 'clock',
-            shortcut: ['e', 's']
-          }
-        ]
+        isActive: false,
+        shortcut: ['o', 'o'],
+        access: { permissions: ['organizations:read'] },
+        items: []
+      },
+      {
+        title: 'الإشعارات',
+        url: '/dashboard/notifications',
+        icon: 'notification',
+        isActive: false,
+        shortcut: ['n', 'n'],
+        access: { permissions: ['notifications:read'] },
+        items: []
       },
       {
         title: 'التقارير',
@@ -55,6 +63,7 @@ export const navGroups: NavGroup[] = [
         icon: 'report',
         isActive: false,
         shortcut: ['r', 'r'],
+        access: { permissions: ['reports:view'] },
         items: []
       },
       {
@@ -63,119 +72,26 @@ export const navGroups: NavGroup[] = [
         icon: 'mail',
         isActive: false,
         shortcut: ['m', 'c'],
-        items: []
-      }
-    ]
-  },
-  {
-    label: 'Overview',
-    items: [
-      {
-        title: 'Dashboard',
-        url: '/dashboard/overview',
-        icon: 'dashboard',
-        isActive: false,
-        shortcut: ['d', 'd'],
+        access: { permissions: ['correspondences:read'] },
         items: []
       },
       {
-        title: 'Product',
-        url: '/dashboard/product',
-        icon: 'product',
-        shortcut: ['p', 'p'],
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Users',
+        title: 'المستخدمون',
         url: '/dashboard/users',
         icon: 'teams',
+        isActive: false,
         shortcut: ['u', 'u'],
-        isActive: false,
+        access: { permissions: ['access:manage'] },
         items: []
       },
       {
-        title: 'Kanban',
-        url: '/dashboard/kanban',
-        icon: 'kanban',
-        shortcut: ['k', 'k'],
+        title: 'الأدوار والصلاحيات',
+        url: '/dashboard/settings/roles',
+        icon: 'settings',
         isActive: false,
+        shortcut: ['s', 'r'],
+        access: { permissions: ['access:manage'] },
         items: []
-      },
-      {
-        title: 'Chat',
-        url: '/dashboard/chat',
-        icon: 'chat',
-        shortcut: ['c', 'c'],
-        isActive: false,
-        items: []
-      }
-    ]
-  },
-  {
-    label: 'Elements',
-    items: [
-      {
-        title: 'Forms',
-        url: '#',
-        icon: 'forms',
-        isActive: true,
-        items: [
-          {
-            title: 'Basic Form',
-            url: '/dashboard/forms/basic',
-            icon: 'forms',
-            shortcut: ['f', 'f']
-          },
-          {
-            title: 'Multi-Step Form',
-            url: '/dashboard/forms/multi-step',
-            icon: 'forms'
-          },
-          {
-            title: 'Sheet & Dialog',
-            url: '/dashboard/forms/sheet-form',
-            icon: 'forms'
-          },
-          {
-            title: 'Advanced Patterns',
-            url: '/dashboard/forms/advanced',
-            icon: 'forms'
-          }
-        ]
-      },
-      {
-        title: 'React Query',
-        url: '/dashboard/react-query',
-        icon: 'code',
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Icons',
-        url: '/dashboard/elements/icons',
-        icon: 'palette',
-        isActive: false,
-        items: []
-      }
-    ]
-  },
-  {
-    label: '',
-    items: [
-      {
-        title: 'Account',
-        url: '#',
-        icon: 'account',
-        isActive: true,
-        items: [
-          {
-            title: 'Notifications',
-            url: '/dashboard/notifications',
-            icon: 'notification',
-            shortcut: ['n', 'n']
-          }
-        ]
       }
     ]
   }

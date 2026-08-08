@@ -1,6 +1,6 @@
+import { formatNumberAr } from '@/lib/format';
 import type { FilterOperator, JoinOperator } from '@/types/data-table';
 import type { RelativeDateToken } from '@/lib/filter-columns';
-import type { TermRemainingFilter } from '../lib/term';
 
 /**
  * Arabic vocabulary for the organizations feature.
@@ -68,20 +68,6 @@ export const RELATIVE_DATE_LABELS: Record<RelativeDateToken, string> = {
   thisYear: 'هذه السنة'
 };
 
-/** Arabic labels for the term-ending-soon page's "time remaining" tabs and column. */
-export const ORGANIZATION_TERM_BUCKET_LABELS: Record<TermRemainingFilter, string> = {
-  all: 'الكل',
-  expired: 'منتهية',
-  lt_2mo: 'أقل من شهرين',
-  lt_3mo: 'أقل من 3 أشهر',
-  lt_6mo: 'أقل من 6 أشهر',
-  lt_1yr: 'أقل من سنة',
-  gt_1yr: 'أكثر من سنة'
-};
-
-/** Column header for the synthetic "remaining time" column — not a real DB field, so it lives outside `ORGANIZATION_FIELD_LABELS`. */
-export const ORGANIZATION_REMAINING_TIME_COLUMN_LABEL = 'الوقت المتبقي';
-
 /** UI strings, grouped by where they appear. */
 export const ORGANIZATION_LABELS = {
   entity: {
@@ -95,8 +81,6 @@ export const ORGANIZATION_LABELS = {
     reportDescription: 'ملخص وإحصاءات مبنية على التصفية الحالية.',
     importTitle: 'استيراد البيانات',
     importDescription: 'رفع ملف إكسل وتحديث السجل.',
-    endingSoonTitle: 'قرب انتهاء الدورة',
-    endingSoonDescription: 'الجمعيات التي تقترب دوراتها من الانتهاء، مصنّفة حسب الوقت المتبقي.',
     detailTitle: 'بيانات الجمعية',
     detailDescription: 'عرض تفاصيل الجمعية.'
   },
@@ -119,7 +103,13 @@ export const ORGANIZATION_LABELS = {
     value: 'القيمة',
     from: 'من',
     to: 'إلى',
-    activeCount: (n: number) => `${n} شرط`
+    activeCount: (n: number) => `${n} شرط`,
+    /** Clears the quick search and every condition in one action. */
+    clearAll: 'مسح الكل',
+    /** The و/أو control sitting between the first two pills. */
+    joinToggle: 'تبديل بين "و" و"أو"',
+    /** Shown in place of the pill row while nothing is filtering. */
+    none: 'بدون تصفية — يشمل السجل بالكامل'
   },
   actions: {
     report: 'تقرير عن النتائج الحالية',
@@ -184,8 +174,6 @@ export const ORGANIZATION_LABELS = {
     total: 'إجمالي الجمعيات',
     districts: 'عدد الألوية',
     classifications: 'عدد التصنيفات',
-    withMobile: 'لديها رقم هاتف',
-    withDirector: 'لديها اسم مدير',
     range: 'سنوات التأسيس',
     byDistrict: 'التوزيع حسب اللواء',
     byClassification: 'التوزيع حسب التصنيف',
@@ -194,6 +182,149 @@ export const ORGANIZATION_LABELS = {
     noFilters: 'لا توجد معايير — التقرير يشمل السجل بالكامل.',
     generatedAt: 'تاريخ إنشاء التقرير',
     unclassified: 'غير مصنّف'
+  },
+  detail: {
+    sections: {
+      identity: 'البيانات الأساسية',
+      term: 'الدورة الحالية',
+      contact: 'بيانات التواصل'
+    },
+    stats: {
+      members: 'الأعضاء',
+      established: 'سنة التأسيس',
+      termLength: 'مدة الدورة',
+      remaining: 'المتبقي من الدورة'
+    },
+    termEnded: 'انتهت الدورة',
+    empty: '—',
+    dangerZone: {
+      title: 'منطقة الخطر',
+      description: 'حذف الجمعية إجراء نهائي — سيتم حذف بياناتها وأعضائها ولا يمكن التراجع.'
+    }
+  },
+  /** The home dashboard. */
+  dashboard: {
+    title: 'لوحة التحكم',
+    description: 'نظرة عامة على السجل، وما ينقصه من بيانات، وحالة الدورات.',
+    alerts: {
+      title: 'بيانات ناقصة',
+      description: 'اضغط على أي بند لفتح الجمعيات التي ينقصها ذلك البيان واستكماله.',
+      allClear: 'لا توجد بيانات ناقصة — السجل مكتمل.',
+      complete: 'مكتمل',
+      /** Opens the filtered registry listing. */
+      openList: 'عرض الجمعيات',
+      /** Opens one organization's page, where the missing value is filled in. */
+      fillIn: 'استكمال',
+      andMore: (n: number) => `و${n} غيرها`
+    },
+    /** The missing-data checks, phrased as what is absent. */
+    issues: {
+      mobile: 'بدون رقم هاتف',
+      directorName: 'بدون اسم مدير',
+      nationalId: 'بدون رقم وطني',
+      establishedAt: 'بدون تاريخ تأسيس',
+      term: 'بدون دورة محددة'
+    },
+    term: {
+      title: 'حالة الدورات',
+      description: (days: number) => `نافذة التنبيه الحالية: ${days} يومًا قبل انتهاء الدورة.`,
+      active: 'سارية',
+      endingSoon: 'تنتهي قريبًا',
+      ended: 'منتهية',
+      unset: 'غير محددة'
+    },
+    recent: {
+      title: 'آخر التحديثات',
+      description: 'أحدث الجمعيات التي تمت إضافتها أو تعديلها.',
+      empty: 'لا توجد سجلات بعد.'
+    },
+    /** Shortcuts to the work the dashboard points at. */
+    actions: {
+      browse: 'تصفّح السجل',
+      report: 'إنشاء تقرير'
+    },
+    /** Shown instead of the aggregate to a user who cannot read the registry. */
+    noAccess: {
+      title: 'لا توجد بيانات لعرضها',
+      description:
+        'حسابك لا يملك صلاحية الاطلاع على سجل الجمعيات. راجع مدير النظام إذا كنت بحاجة إلى ذلك.'
+    }
+  },
+  /** Report builder controls. */
+  builder: {
+    title: 'منشئ التقارير',
+    description: 'اختر المعايير وشكل التقرير، ثم اطبعه أو نزّله بصيغة PDF.',
+    reportTitle: 'عنوان التقرير',
+    criteria: 'معايير التصفية',
+    groupBy: 'التجميع حسب',
+    sections: 'أقسام التقرير',
+    columns: 'أعمدة الجدول',
+    matching: 'النتائج المطابقة',
+    openPrint: 'معاينة الطباعة',
+    downloadPdf: 'تنزيل PDF',
+    exportExcel: 'تصدير إلى إكسل',
+    templates: 'القوالب المحفوظة',
+    noTemplates: 'لا توجد قوالب محفوظة بعد.',
+    loadTemplate: 'تحميل',
+    saveTemplate: 'حفظ كقالب',
+    updateTemplate: 'تحديث القالب',
+    templateName: 'اسم القالب',
+    templateDescription: 'وصف مختصر (اختياري)',
+    templateSaved: 'تم حفظ القالب.',
+    templateUpdated: 'تم تحديث القالب.',
+    templateDeleted: 'تم حذف القالب.',
+    templateSaveFailed: 'تعذّر حفظ القالب.',
+    templateDeleteFailed: 'تعذّر حذف القالب.',
+    deleteTemplateTitle: 'حذف القالب؟',
+    deleteTemplateDescription: 'سيتم حذف هذا القالب نهائيًا.',
+    selectAtLeastOneSection: 'اختر قسمًا واحدًا على الأقل.',
+    selectAtLeastOneColumn: 'اختر عمودًا واحدًا على الأقل.',
+    /** Card headings and helper text for the redesigned builder. */
+    shape: 'شكل التقرير',
+    shapeDescription: 'العنوان والتجميع والأقسام التي يتكوّن منها المستند.',
+    sectionsHint: 'الكتل التي ستُطبع، بالترتيب.',
+    columnsHint: 'الحقول التي ستظهر في جدول التفاصيل.',
+    selectAllColumns: 'تحديد الكل',
+    clearColumns: 'مسح',
+    columnsCount: (selected: number, total: number) => `${selected} من ${total}`,
+    distribution: 'التوزيع حسب',
+    output: 'الإخراج',
+    outputBlocked: 'اختر قسمًا وعمودًا واحدًا على الأقل لتفعيل التصدير.'
+  },
+  /** Grouping dimensions offered by the builder. */
+  groupBy: {
+    district: 'اللواء',
+    classification: 'التصنيف',
+    year: 'سنة التأسيس',
+    termStatus: 'حالة الدورة'
+  },
+  /** Blocks the report may contain. */
+  sections: {
+    criteria: 'معايير التصفية',
+    summary: 'الملخص الإحصائي',
+    charts: 'الرسوم البيانية',
+    table: 'جدول التفاصيل'
+  },
+  /** Strings that appear only on the printed document. */
+  document: {
+    kingdom: 'المملكة الأردنية الهاشمية',
+    ministry: 'وزارة الثقافة',
+    directorate: 'مديرية ثقافة اربد',
+    department: 'قسم الهيئات',
+    groupedTitle: 'التوزيع حسب',
+    total: 'الإجمالي',
+    percent: 'النسبة',
+    count: 'العدد',
+    rowNumber: 'م',
+    preparedBy: 'إعداد',
+    reviewedBy: 'تدقيق',
+    approvedBy: 'اعتماد',
+    signature: 'التوقيع',
+    page: 'صفحة',
+    /** Shown in the repeating page header, beside the emblem. */
+    runningTitle: 'تقرير الجمعيات الثقافية — اربد',
+    printedNote: 'وثيقة صادرة عن نظام سجل الجمعيات الثقافية',
+    noRows: 'لا توجد سجلات مطابقة للمعايير المحددة.'
   },
   members: {
     sectionTitle: 'أعضاء الجمعية',
@@ -237,3 +368,18 @@ export const ORGANIZATION_LABELS = {
     noIssues: 'لا توجد ملاحظات.'
   }
 } as const;
+
+/**
+ * A count of organizations, agreeing in Arabic.
+ *
+ * Arabic counts take four forms — singular, dual, the 3–10 plural, and the
+ * ≥11 singular-after-number — so the obvious `${n} جمعية` template reads as
+ * broken grammar for every count below eleven.
+ */
+export function formatOrganizationCountAr(count: number): string {
+  if (count === 0) return 'لا توجد جمعيات';
+  if (count === 1) return 'جمعية واحدة';
+  if (count === 2) return 'جمعيتان';
+  if (count <= 10) return `${formatNumberAr(count)} جمعيات`;
+  return `${formatNumberAr(count)} جمعية`;
+}

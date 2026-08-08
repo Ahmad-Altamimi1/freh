@@ -4,9 +4,21 @@ import { applyAuthCookies, updateSession } from '@/lib/supabase/middleware';
 const SIGN_IN_PATH = '/auth/sign-in';
 const AFTER_SIGN_IN_PATH = '/dashboard/overview';
 
-/** Routes that require an authenticated user. */
+/**
+ * Routes that require an authenticated user.
+ *
+ * `/print` holds the printable report documents. They live outside `/dashboard`
+ * so they render without the app chrome, which would otherwise shift the A4
+ * content box — but they read the same registry data, so they belong behind the
+ * same redirect. As everywhere, this is the UX layer; `requireUser()` inside
+ * each page is the boundary.
+ */
 function isProtectedRoute(pathname: string) {
-  return pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+  return (
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname.startsWith('/print/')
+  );
 }
 
 /**

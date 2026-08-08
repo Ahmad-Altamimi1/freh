@@ -1,14 +1,21 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Icons } from '@/components/icons';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
-export default function OverviewError({ error }: { error: Error }) {
+export default function OverviewError({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <Alert variant='destructive'>
-      <Icons.alertCircle className='h-4 w-4' />
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>Failed to load statistics: {error.message}</AlertDescription>
-    </Alert>
+    <div className='flex flex-col items-start gap-3 p-4 md:px-6'>
+      <Alert variant='destructive'>
+        <Icons.alertCircle className='size-4' />
+        <AlertTitle>تعذّر تحميل لوحة التحكم</AlertTitle>
+        <AlertDescription>{error.message}</AlertDescription>
+      </Alert>
+      <Button variant='outline' size='sm' onClick={reset}>
+        <Icons.refresh />
+        إعادة المحاولة
+      </Button>
+    </div>
   );
 }

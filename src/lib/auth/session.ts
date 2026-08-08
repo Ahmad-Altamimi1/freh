@@ -2,7 +2,6 @@ import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { getUserPermissions, getUserRoles } from './roles';
 
 export const SIGN_IN_PATH = '/auth/sign-in';
 
@@ -43,6 +42,11 @@ export async function requireUser(): Promise<User> {
  *
  * Carries only what the UI needs — never spread a raw Supabase `User` across
  * the server/client boundary, as it contains the full identity payload.
+ *
+ * `roles` and `permissions` here are for *rendering* — hiding a nav link,
+ * disabling a button. They are a copy of a decision already made on the server
+ * and must never be the basis of one: anything that matters is re-checked with
+ * `@/lib/auth/access` on the server.
  */
 export type SessionUser = {
   id: string;
@@ -57,10 +61,17 @@ export type SessionUser = {
  * Projects a Supabase user into the shape the UI renders.
  *
  * Supabase puts profile fields in `user_metadata`, which is user-writable — it
- * is fine for display, but never branch on it for authorization. Use
- * `app_metadata` (see `@/lib/auth/roles`) for that.
+ * is fine for display, but never branch on it for authorization.
+ *
+ * `access` is the resolved authorization state from `getEffectiveAccess()`.
+ * It is a required argument rather than something read from `app_metadata`
+ * here, because permissions now live in the database: a projection that quietly
+ * fell back to the JWT would render the sidebar from a stale grant.
  */
-export function toSessionUser(user: User): SessionUser {
+export function toSessionUser(
+  user: User,
+  access: { roles: string[]; permissions: string[] }
+): SessionUser {
   const metadata = user.user_metadata ?? {};
   const name =
     (typeof metadata.full_name === 'string' && metadata.full_name) ||
@@ -73,7 +84,7 @@ export function toSessionUser(user: User): SessionUser {
     email: user.email ?? '',
     name,
     avatarUrl: typeof metadata.avatar_url === 'string' ? metadata.avatar_url : null,
-    roles: getUserRoles(user),
-    permissions: getUserPermissions(user)
+    roles: access.roles,
+    permissions: access.permissions
   };
 }

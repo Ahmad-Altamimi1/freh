@@ -9,12 +9,12 @@ import * as React from 'react';
 
 import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useBreadcrumbOverride } from '@/hooks/use-breadcrumbs';
 import { organizationByIdOptions } from '../api/queries';
 import { deleteOrganizationMutation } from '../api/mutations';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
+import { todayUTC } from '../lib/term';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
 import { OrganizationFormSheet } from './organization-form-sheet';
 import { MembersManager } from './members-manager';
@@ -23,21 +23,36 @@ interface OrganizationDetailPageProps {
   organizationId: string;
 }
 
+const { detail: DETAIL_LABELS } = ORGANIZATION_LABELS;
+
 /**
- * Renders Western digits as Arabic-Indic (٠-٩).
+ * Whole months between two `YYYY-MM-DD` strings, floored.
  *
- * The app's formatters intentionally emit Western digits (`nu-latn`), but the
- * facts strip is a display accent, so its numerals are converted locally rather
- * than changing the shared formatting helpers.
+ * String arithmetic rather than `Date` math for the same reason `lib/term.ts`
+ * avoids it: `new Date('YYYY-MM-DD')` parses as UTC but reads back through
+ * local getters, which shifts the answer by a day either side of midnight.
  */
-function toArabicIndic(value: string): string {
-  return value.replace(/\d/g, (digit) => String.fromCharCode(0x0660 + digit.charCodeAt(0) - 0x30));
+function monthsUntil(fromISO: string, toISO: string): number {
+  const [fromYear, fromMonth, fromDay] = fromISO.split('-').map(Number);
+  const [toYear, toMonth, toDay] = toISO.split('-').map(Number);
+  const months = (toYear - fromYear) * 12 + (toMonth - fromMonth);
+  return toDay < fromDay ? months - 1 : months;
 }
 
-/** Formats a number and converts it to Arabic-Indic digits, without grouping separators. */
-function arabicIndicNumber(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '—';
-  return toArabicIndic(formatNumberAr(value).replace(/\D/g, ''));
+/** Arabic month count, following the language's dual/plural agreement. */
+function formatMonthsAr(count: number): string {
+  if (count === 1) return 'شهر واحد';
+  if (count === 2) return 'شهران';
+  if (count <= 10) return `${formatNumberAr(count)} أشهر`;
+  return `${formatNumberAr(count)} شهرًا`;
+}
+
+/** A value that may be absent — renders a muted dash rather than an empty cell. */
+function Value({ children }: { children: React.ReactNode }) {
+  if (children === null || children === undefined || children === '') {
+    return <span className='text-muted-foreground'>{DETAIL_LABELS.empty}</span>;
+  }
+  return <>{children}</>;
 }
 
 export function OrganizationDetailPage({ organizationId }: OrganizationDetailPageProps) {
@@ -69,102 +84,97 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
   });
 
   const establishedYear = organization.establishedAt
-    ? Number(organization.establishedAt.slice(0, 4)) || null
+    ? organization.establishedAt.slice(0, 4)
     : null;
 
-  // Hero eyebrow — derived from the founding year and the district.
-  const eyebrow = [
-    establishedYear != null ? `تأسست عام ${arabicIndicNumber(establishedYear)}` : null,
-    organization.district || null
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  // Months left on the current term. Negative once the term has lapsed, which
+  // the stat renders as "ended" rather than as a negative count.
+  const monthsLeft = organization.termEnd ? monthsUntil(todayUTC(), organization.termEnd) : null;
 
-  // Hero description — district + classification, with a generic fallback.
-  const description =
-    [
-      organization.classification
-        ? `${ORGANIZATION_FIELD_LABELS.classification}: ${organization.classification}`
-        : null,
-      organization.district
-        ? `${ORGANIZATION_FIELD_LABELS.district}: ${organization.district}`
-        : null
-    ]
-      .filter(Boolean)
-      .join(' · ') || 'جمعية ثقافية تعمل في محافظة إربد';
-
-  const facts: { label: string; value: string }[] = [
+  const stats: {
+    label: string;
+    value: string;
+    icon: React.ReactNode;
+    ltr?: boolean;
+  }[] = [
     {
-      label: ORGANIZATION_FIELD_LABELS.establishedAt,
-      value: arabicIndicNumber(establishedYear)
+      label: DETAIL_LABELS.stats.members,
+      value: formatNumberAr(organization.members.length),
+      icon: <Icons.teams className='size-4' />,
+      ltr: true
     },
     {
-      label: ORGANIZATION_FIELD_LABELS.district,
-      value: organization.district || '—'
+      label: DETAIL_LABELS.stats.established,
+      value: establishedYear ?? DETAIL_LABELS.empty,
+      icon: <Icons.building className='size-4' />,
+      ltr: true
     },
     {
-      label: ORGANIZATION_FIELD_LABELS.classification,
-      value: organization.classification || '—'
+      label: DETAIL_LABELS.stats.termLength,
+      value:
+        organization.termLength != null
+          ? formatMonthsAr(organization.termLength)
+          : DETAIL_LABELS.empty,
+      icon: <Icons.calendar className='size-4' />
     },
     {
-      label: ORGANIZATION_FIELD_LABELS.termLength,
-      value: arabicIndicNumber(organization.termLength)
+      label: DETAIL_LABELS.stats.remaining,
+      value:
+        monthsLeft === null
+          ? DETAIL_LABELS.empty
+          : monthsLeft <= 0
+            ? DETAIL_LABELS.termEnded
+            : formatMonthsAr(monthsLeft),
+      icon: <Icons.clock className='size-4' />
     }
   ];
 
-  const infoRows: { label: string; value: React.ReactNode }[] = [
+  // Grouped so each card answers one question: who they are, and when the
+  // current term runs. The previous flat list repeated every value already
+  // shown in the stats strip.
+  const identityRows: { label: string; value: React.ReactNode }[] = [
     { label: ORGANIZATION_FIELD_LABELS.name, value: organization.name },
     {
       label: ORGANIZATION_FIELD_LABELS.nationalId,
       value: organization.nationalId ? (
-        <span dir='ltr' className='tabular-nums tracking-tight'>
+        <span dir='ltr' className='tabular-nums'>
           {organization.nationalId}
         </span>
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
+      ) : null
     },
     { label: ORGANIZATION_FIELD_LABELS.district, value: organization.district },
     {
       label: ORGANIZATION_FIELD_LABELS.classification,
-      value: organization.classification || <span className='text-muted-foreground'>—</span>
+      value: organization.classification
     },
     {
       label: ORGANIZATION_FIELD_LABELS.establishedAt,
       value: organization.establishedAt ? (
-        formatDateAr(organization.establishedAt)
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
-    },
+        <span dir='ltr'>{formatDateAr(organization.establishedAt)}</span>
+      ) : null
+    }
+  ];
+
+  const termRows: { label: string; value: React.ReactNode }[] = [
     {
       label: ORGANIZATION_FIELD_LABELS.termStart,
       value: organization.termStart ? (
-        formatDateAr(organization.termStart)
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
+        <span dir='ltr'>{formatDateAr(organization.termStart)}</span>
+      ) : null
     },
     {
       label: ORGANIZATION_FIELD_LABELS.termEnd,
       value: organization.termEnd ? (
-        formatDateAr(organization.termEnd)
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
+        <span dir='ltr'>{formatDateAr(organization.termEnd)}</span>
+      ) : null
     },
     {
       label: ORGANIZATION_FIELD_LABELS.termLength,
-      value:
-        organization.termLength != null ? (
-          formatNumberAr(organization.termLength)
-        ) : (
-          <span className='text-muted-foreground'>—</span>
-        )
+      value: organization.termLength != null ? formatMonthsAr(organization.termLength) : null
     },
     {
       label: ORGANIZATION_FIELD_LABELS.directorName,
-      value: organization.directorName || <span className='text-muted-foreground'>—</span>
+      value: organization.directorName
     },
     {
       label: ORGANIZATION_FIELD_LABELS.mobile,
@@ -176,9 +186,7 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
         >
           {organization.mobile}
         </a>
-      ) : (
-        <span className='text-muted-foreground'>—</span>
-      )
+      ) : null
     }
   ];
 
@@ -203,124 +211,148 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
         />
       )}
 
-      <div className='space-y-8'>
-        <div className='flex items-center gap-2'>
+      <div className='space-y-6'>
+        {/* 1. Toolbar — navigation on the leading edge, record actions on the trailing one */}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           <Button
             variant='ghost'
             size='sm'
+            nativeButton={false}
             render={<Link href='/dashboard/organizations' />}
-            className='text-muted-foreground transition-colors hover:text-foreground'
+            className='-ms-2 text-muted-foreground transition-colors hover:text-foreground'
           >
-            <Icons.chevronRight className='size-4' />
+            <Icons.chevronRight className='size-4 rtl:rotate-180' />
             {ORGANIZATION_LABELS.actions.backToList}
+          </Button>
+
+          <Button onClick={() => setEditOpen(true)} variant='outline' size='sm'>
+            <Icons.edit className='size-4' />
+            {ORGANIZATION_LABELS.actions.edit}
           </Button>
         </div>
 
-        <div>
-          {/* 1. Hero */}
-          <section className='rounded-2xl border border-border bg-card px-6 pb-16 pt-10 shadow-sm sm:px-10'>
-            <div className='flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between'>
-              <div className='space-y-4'>
-                {eyebrow && (
-                  <Badge variant='outline' className='border-border bg-muted text-muted-foreground'>
-                    {eyebrow}
-                  </Badge>
-                )}
-                <h1 className='text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl'>
-                  {ORGANIZATION_LABELS.page.detailTitle}
-                </h1>
-                <p className='max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base'>
-                  {description}
+        {/* 2. Stats — derived at-a-glance values, not a repeat of the record */}
+        <section className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+          <div className='grid grid-cols-2 gap-px bg-border lg:grid-cols-4'>
+            {stats.map((stat) => (
+              <div key={stat.label} className='bg-card px-5 py-4'>
+                <div className='flex items-center gap-1.5 text-muted-foreground'>
+                  {stat.icon}
+                  <span className='text-xs font-medium'>{stat.label}</span>
+                </div>
+                <p
+                  dir={stat.ltr ? 'ltr' : undefined}
+                  className='mt-1.5 text-xl font-semibold tabular-nums text-foreground text-start'
+                >
+                  {stat.value}
                 </p>
               </div>
-
-              <div className='flex shrink-0 items-center gap-3'>
-                <Button onClick={() => setEditOpen(true)} variant='outline' className='rounded-xl'>
-                  <Icons.edit className='size-4' />
-                  {ORGANIZATION_LABELS.actions.edit}
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          {/* 2. Facts strip — overlaps the hero */}
-          <section className='relative z-10 -mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm lg:grid-cols-4'>
-            {facts.map((fact) => (
-              <div
-                key={fact.label}
-                className='flex flex-col items-center justify-center gap-1.5 bg-card px-4 py-6 text-center'
-              >
-                <span className='text-xl font-bold text-primary sm:text-1xl'>{fact.value}</span>
-                <span className='text-xs font-medium text-muted-foreground'>{fact.label}</span>
-              </div>
             ))}
-          </section>
-        </div>
-
-        {/* 3. Members + definition list */}
-        <section className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]'>
-          <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
-            <div className='flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5'>
-              <div className='flex items-center gap-3'>
-                <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
-                  <Icons.teams className='size-5' />
-                </div>
-                <div>
-                  <h2 className='text-lg font-semibold text-foreground'>
-                    {ORGANIZATION_LABELS.members.sectionTitle}
-                  </h2>
-                  <p className='text-sm text-muted-foreground'>
-                    {organization.members.length > 0
-                      ? `${formatNumberAr(organization.members.length)} عضو`
-                      : ORGANIZATION_LABELS.members.noMembers}
-                  </p>
-                </div>
-              </div>
-              <Button
-                render={
-                  <Link href={`/dashboard/organizations/${organization.id}/import-members`} />
-                }
-                variant='outline'
-                className='rounded-xl'
-              >
-                <Icons.fileImport className='size-4' />
-                {ORGANIZATION_LABELS.members.importButton}
-              </Button>
-            </div>
-            <div className='p-6'>
-              <MembersManager organizationId={organization.id} members={organization.members} />
-            </div>
-          </div>
-
-          <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
-            {/* <div className='border-b border-border px-6 py-4'>
-              <h2 className='text-base font-semibold text-foreground'>
-                {ORGANIZATION_LABELS.page.detailTitle}
-              </h2>
-            </div> */}
-            <dl className='divide-y divide-border/50'>
-              {infoRows.map((row) => (
-                <div
-                  key={row.label}
-                  className='flex items-center justify-between gap-6 px-6 py-3.5'
-                >
-                  <dt className='shrink-0 text-sm text-muted-foreground'>{row.label}</dt>
-                  <dd className='min-w-0 text-right text-xs font-medium leading-snug text-foreground'>
-                    {row.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
           </div>
         </section>
 
-        <div className='flex justify-end'>
-          <Button variant='destructive' onClick={() => setDeleteOpen(true)} className='rounded-xl'>
-            <Icons.trash className='size-4' />
-            {ORGANIZATION_LABELS.actions.delete}
-          </Button>
-        </div>
+        {/* 3. The record itself — two equal cards instead of one cramped column */}
+        <section className='grid items-start gap-6 lg:grid-cols-2'>
+          <DetailCard
+            title={DETAIL_LABELS.sections.identity}
+            icon={<Icons.building className='size-4' />}
+            rows={identityRows}
+          />
+          <DetailCard
+            title={DETAIL_LABELS.sections.term}
+            icon={<Icons.calendar className='size-4' />}
+            rows={termRows}
+          />
+        </section>
+
+        {/* 4. Members — full width, since the table is the widest thing on the page */}
+        <section className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+          <div className='flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4'>
+            <div className='flex items-center gap-3'>
+              <div className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                <Icons.teams className='size-5' />
+              </div>
+              <div>
+                <h2 className='text-base font-semibold text-foreground'>
+                  {ORGANIZATION_LABELS.members.sectionTitle}
+                </h2>
+                <p className='text-sm text-muted-foreground'>
+                  {organization.members.length > 0
+                    ? `${formatNumberAr(organization.members.length)} عضو`
+                    : ORGANIZATION_LABELS.members.noMembers}
+                </p>
+              </div>
+            </div>
+            <Button
+              nativeButton={false}
+              render={<Link href={`/dashboard/organizations/${organization.id}/import-members`} />}
+              variant='outline'
+            >
+              <Icons.fileImport className='size-4' />
+              {ORGANIZATION_LABELS.members.importButton}
+            </Button>
+          </div>
+          <div className='p-6'>
+            <MembersManager organizationId={organization.id} members={organization.members} />
+          </div>
+        </section>
+
+        {/* 5. Danger zone — irreversible actions live apart from the record, at the
+            end of the page, so deleting cannot be mistaken for editing. */}
+        <section className='rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-5'>
+          <div className='flex flex-wrap items-center justify-between gap-4'>
+            <div className='flex items-start gap-3'>
+              <Icons.warning className='mt-0.5 size-5 shrink-0 text-destructive' />
+              <div className='space-y-1'>
+                <h2 className='text-sm font-semibold text-destructive'>
+                  {DETAIL_LABELS.dangerZone.title}
+                </h2>
+                <p className='text-sm text-muted-foreground'>
+                  {DETAIL_LABELS.dangerZone.description}
+                </p>
+              </div>
+            </div>
+            <Button variant='destructive' onClick={() => setDeleteOpen(true)} className='shrink-0'>
+              <Icons.trash className='size-4' />
+              {ORGANIZATION_LABELS.actions.delete}
+            </Button>
+          </div>
+        </section>
       </div>
     </>
+  );
+}
+
+/** One labelled group of record fields. Label and value share a type size so
+ *  the two columns read as a table rather than as a heading over a caption. */
+function DetailCard({
+  title,
+  icon,
+  rows
+}: {
+  title: string;
+  icon: React.ReactNode;
+  rows: { label: string; value: React.ReactNode }[];
+}) {
+  return (
+    <div className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'>
+      <div className='flex items-center gap-2 border-b border-border px-6 py-4 text-muted-foreground'>
+        {icon}
+        <h2 className='text-sm font-semibold text-foreground'>{title}</h2>
+      </div>
+      <dl className='divide-y divide-border/60'>
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className='grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] items-baseline gap-4 px-6 py-3'
+          >
+            <dt className='text-sm text-muted-foreground'>{row.label}</dt>
+            <dd className='min-w-0 text-sm font-medium leading-relaxed text-foreground'>
+              <Value>{row.value}</Value>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

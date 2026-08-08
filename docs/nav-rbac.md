@@ -2,6 +2,8 @@
 
 Role-based filtering of sidebar and Cmd+K navigation items.
 
+> This page covers **navigation visibility only**. For the permission catalog, role management, server guards and export gating, see [rbac.md](./rbac.md).
+
 > **Navigation visibility is UX, not security.** Hiding a link stops nobody from typing the URL. Every protected page, Server Action and Route Handler must repeat the check on the server.
 
 ## Declaring access
@@ -10,55 +12,36 @@ Add an optional `access` property to any item in `src/config/nav-config.ts`:
 
 ```ts
 {
-  title: 'Reports',
-  url: '/dashboard/reports',
-  icon: 'chart',
-  access: { anyRole: ['admin', 'manager'] }
+  title: 'التقارير',
+  url: '/dashboard/organizations/reports',
+  icon: 'report',
+  access: { permissions: ['reports:view'] }
 }
 ```
 
 | Rule | Meaning |
 | --- | --- |
-| `anyRole: string[]` | User holds **at least one** of these roles |
 | `permissions: string[]` | User holds **every one** of these permissions |
+| `anyRole: string[]` | User holds **at least one** of these roles |
 
 Both may be combined; all declared rules must pass. Omit `access` entirely for items everyone can see. An item with `access` is hidden from signed-out users.
 
 Child items are filtered independently, and a group left with no visible items disappears.
 
-## Where roles come from
+**Prefer `permissions` over `anyRole`.** A role name is a moving target — an administrator can rename or retire it from `/dashboard/settings/roles` — while a permission is the capability itself. `anyRole` remains supported for the rare case where the role *is* genuinely the thing you mean.
 
-Roles and permissions live in the Supabase user's `app_metadata`:
+## Where the values come from
 
-```json
-{ "role": "admin", "permissions": ["reports:read"] }
-```
+Permissions are resolved from the roles a user holds in the database (`user_roles` → `roles` → `role_permissions`), not from the JWT. `src/app/dashboard/layout.tsx` calls `getEffectiveAccess()` and seeds `SessionProvider` with the result, so `useFilteredNavGroups` filters synchronously: no loading state, no flash of items the user cannot reach, no client-side auth round-trip.
 
-`role` accepts a string or an array; `roles` is also read, and the two are merged.
-
-`app_metadata` is only writable with the service role key, which is what makes it safe to base authorization on. `user_metadata` is writable by the user's own session — display only, never authorization.
-
-Set it in the Supabase dashboard (Authentication → Users → ⋯ → Edit) or from trusted server code:
-
-```ts
-import { createAdminClient } from '@/lib/supabase/admin';
-
-await createAdminClient().auth.admin.updateUserById(userId, {
-  app_metadata: { role: 'admin' }
-});
-```
-
-A user must sign out and back in — or have their token refreshed — before a metadata change reaches their session.
-
-## How it works
-
-`src/app/dashboard/layout.tsx` resolves the user server-side and seeds `SessionProvider`. `useFilteredNavGroups` reads roles from that context, so filtering is synchronous: no loading state, no flash of items the user cannot reach, no client-side auth round-trip.
+A permission change therefore lands on the user's next request — no sign-out needed.
 
 | File | Role |
 | --- | --- |
 | `src/hooks/use-nav.ts` | `useFilteredNavItems` / `useFilteredNavGroups` |
 | `src/components/layout/session-provider.tsx` | Server-seeded session context |
-| `src/lib/auth/roles.ts` | Reads `app_metadata` |
+| `src/lib/auth/access.ts` | Resolves roles and permissions from the database |
+| `src/lib/auth/permissions.ts` | The permission catalog |
 | `src/types/index.ts` | `PermissionCheck` |
 
 ## Enforcing it for real
@@ -66,15 +49,13 @@ A user must sign out and back in — or have their token refreshed — before a 
 Filtering the nav does nothing to protect the page. Guard the route itself:
 
 ```ts
-import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth/session';
-import { hasAnyRole } from '@/lib/auth/roles';
+import { requirePagePermission } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 export default async function ReportsPage() {
-  const user = await requireUser();
-  if (!hasAnyRole(user, ['admin', 'manager'])) redirect('/dashboard/overview');
+  await requirePagePermission(PERMISSIONS.REPORTS_VIEW);
   // …
 }
 ```
 
-`src/lib/auth/roles.ts` also exports `hasRole`, `hasPermission`, `getUserRoles`, `getUserPermissions` and `satisfiesAccess` for use in Server Actions and Route Handlers.
+See [rbac.md](./rbac.md) for `requirePermission`, `can`, `canAny` and the rest.

@@ -1,0 +1,8 @@
+# Migration files must keep LF line endings in the working tree.
+#
+# drizzle records an applied migration by the SHA-256 of the file's raw bytes,
+# so a checkout that rewrites LF to CRLF (the default under
+# `core.autocrlf=true` on Windows) changes every hash and makes `db:migrate`
+# treat already-applied migrations as pending. Re-running them fails on the
+# first `CREATE TABLE`/`CREATE POLICY` that already exists.
+*.sql text eol=lf

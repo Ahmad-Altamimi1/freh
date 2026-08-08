@@ -4,6 +4,8 @@ import { describeFilters } from '@/features/organizations/api/describe-filters';
 import { organizationsSearchParams } from '@/features/organizations/api/search-params';
 import { getAllOrganizations } from '@/features/organizations/api/service';
 import { buildOrganizationsExport } from '@/features/organizations/api/workbook-export';
+import { canAny } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { xlsxResponse } from '../response';
 
@@ -15,11 +17,22 @@ import { xlsxResponse } from '../response';
  * problem and a correctness one — the browser only ever holds the current page,
  * so an export built from it would silently contain ten rows instead of all of
  * them.
+ *
+ * EITHER export permission opens this route, rather than one specific one. The
+ * same endpoint backs three surfaces — the registry toolbar, the report page and
+ * the report builder — over identical rows and an identical filter. Requiring
+ * `organizations:export` would break the reporter role; requiring
+ * `reports:export:excel` would break the registry toolbar; requiring both would
+ * break each of them for the other's sake. What either permission actually
+ * grants is "may take these rows out as a file", which is exactly this route.
  */
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
+  }
+  if (!(await canAny([PERMISSIONS.ORGANIZATIONS_EXPORT, PERMISSIONS.REPORTS_EXPORT_EXCEL]))) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const params = request.nextUrl.searchParams;

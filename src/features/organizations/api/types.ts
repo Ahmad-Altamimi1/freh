@@ -1,5 +1,4 @@
 import type { OrganizationRow } from '@/db/schema/organizations';
-import type { TermRemainingFilter } from '../lib/term';
 import type { ExtendedColumnFilter, ExtendedColumnSort, JoinOperator } from '@/types/data-table';
 
 export type Member = {
@@ -29,9 +28,6 @@ export type OrganizationFilters = {
   q?: string;
   filters?: ExtendedColumnFilter<Organization>[];
   joinOperator?: JoinOperator;
-  /** Scopes to organizations whose `term_end` falls in this bucket. Omitted entirely
-   *  on the main listing — only the "nearing term end" page ever sets this. */
-  remainingBucket?: TermRemainingFilter;
 };
 
 export type OrganizationsResponse = {
@@ -47,34 +43,159 @@ export type OrganizationFacets = {
   classifications: { value: string; count: number }[];
 };
 
-/**
- * Counts backing the "time remaining" tabs on the term-ending-soon page.
- * `all` is every organization with a `term_end` set — not every organization —
- * since a row with no term to speak of isn't part of what that page describes.
- */
-export type OrganizationTermBucketCounts = {
-  all: number;
-  expired: number;
-  lt_2mo: number;
-  lt_3mo: number;
-  lt_6mo: number;
-  lt_1yr: number;
-  gt_1yr: number;
-};
-
 export type OrganizationReport = {
   summary: {
     total: number;
     districtCount: number;
     classificationCount: number;
-    withMobile: number;
-    withDirector: number;
     earliestYear: number | null;
     latestYear: number | null;
   };
   byDistrict: { label: string; count: number }[];
   byClassification: { label: string; count: number }[];
   byYear: { year: number; count: number }[];
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                  Dashboard                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The missing-data checks the dashboard alerts on.
+ *
+ * Each key is both the alert's identity and the column it is about — `term`
+ * being the one exception, since "no term recorded" is a missing `termEnd`,
+ * which is itself derived from `termStart` + `termLength`.
+ */
+export const DATA_GAP_KEYS = [
+  'mobile',
+  'directorName',
+  'nationalId',
+  'establishedAt',
+  'term'
+] as const;
+export type DataGapKey = (typeof DATA_GAP_KEYS)[number];
+
+/** One missing-data alert: how many rows, and a few of them to jump straight into. */
+export type DataGap = {
+  key: DataGapKey;
+  count: number;
+  /** The first few affected organizations, so the alert can link into the record itself. */
+  samples: { id: string; name: string; district: string }[];
+};
+
+export type DashboardOverview = {
+  total: number;
+  districtCount: number;
+  classificationCount: number;
+  /** Term buckets relative to today, using the same notice window as the alerts. */
+  termStatus: {
+    active: number;
+    endingSoon: number;
+    ended: number;
+    unset: number;
+  };
+  /**
+   * The boundaries the buckets were computed against, resolved on the server.
+   *
+   * The client builds its drill-down links from these rather than from its own
+   * clock: a browser a day ahead of the server would otherwise link to a filter
+   * that disagrees with the count it was rendered next to.
+   */
+  termWindow: { today: string; noticeEnd: string; noticeDays: number };
+  gaps: DataGap[];
+  byDistrict: { label: string; count: number }[];
+  byClassification: { label: string; count: number }[];
+  recent: { id: string; name: string; district: string; updatedAt: string }[];
+};
+
+/* -------------------------------------------------------------------------- */
+/*                              Report definitions                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The dimension a report groups its rows by.
+ *
+ * `termStatus` is derived rather than stored — see `TERM_STATUS_BUCKETS` in the
+ * service. The other three map straight onto columns.
+ */
+export const REPORT_GROUP_BY = ['district', 'classification', 'year', 'termStatus'] as const;
+export type ReportGroupBy = (typeof REPORT_GROUP_BY)[number];
+
+/** Blocks a report may include, in the order they are printed. */
+export const REPORT_SECTIONS = ['criteria', 'summary', 'charts', 'table'] as const;
+export type ReportSection = (typeof REPORT_SECTIONS)[number];
+
+/** Fields offered to the detail table's column picker. */
+export const REPORT_COLUMNS = [
+  'serialNo',
+  'name',
+  'nationalId',
+  'district',
+  'classification',
+  'establishedAt',
+  'termStart',
+  'termEnd',
+  'termLength',
+  'directorName',
+  'mobile'
+] as const;
+export type ReportColumn = (typeof REPORT_COLUMNS)[number];
+
+/**
+ * A complete, re-runnable description of a report.
+ *
+ * Everything needed to reproduce the document lives here, which is what makes a
+ * template meaningful: storing only the filter would leave the shape (grouping,
+ * sections, columns) to whatever the UI happened to default to on the day it was
+ * re-opened.
+ */
+export type ReportDefinition = {
+  /** Printed as the document's title. */
+  title: string;
+  /** Which rows the report is about. Mirrors `OrganizationFilters` minus paging. */
+  criteria: {
+    q?: string;
+    filters?: ExtendedColumnFilter<Organization>[];
+    joinOperator?: JoinOperator;
+    sort?: ExtendedColumnSort<Organization>[];
+  };
+  groupBy: ReportGroupBy;
+  sections: ReportSection[];
+  columns: ReportColumn[];
+};
+
+/** One bucket of the grouped aggregation. */
+export type ReportGroupRow = { label: string; count: number };
+
+/** What the report page and the print route both render. */
+export type ReportResult = {
+  definition: ReportDefinition;
+  summary: OrganizationReport['summary'];
+  /** Aggregation for `definition.groupBy`. */
+  grouped: ReportGroupRow[];
+  byDistrict: ReportGroupRow[];
+  byClassification: ReportGroupRow[];
+  byYear: { year: number; count: number }[];
+  /** Detail rows, present only when the `table` section is selected. */
+  rows: Organization[];
+  generatedAt: string;
+};
+
+/** A saved, named report definition. */
+export type ReportTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  definition: ReportDefinition;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReportTemplatePayload = {
+  name: string;
+  description: string;
+  definition: ReportDefinition;
 };
 
 /**

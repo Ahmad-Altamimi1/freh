@@ -1,13 +1,15 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import {
+  getDashboardOverview,
   getOrganizationById,
   getOrganizationFacets,
   getOrganizationReport,
   getOrganizations,
-  getOrganizationTermBucketCounts
+  getReportTemplates,
+  runOrganizationReport
 } from './service';
-import type { OrganizationFilters } from './types';
+import type { OrganizationFilters, ReportDefinition } from './types';
 
 /**
  * Query key factory.
@@ -23,8 +25,7 @@ export const organizationKeys = {
   detail: (id: string) => [...organizationKeys.all, 'detail', id] as const,
   facets: (filters: OrganizationFilters) => [...organizationKeys.all, 'facets', filters] as const,
   report: (filters: OrganizationFilters) => [...organizationKeys.all, 'report', filters] as const,
-  termBucketCounts: (filters: OrganizationFilters) =>
-    [...organizationKeys.all, 'term-bucket-counts', filters] as const
+  dashboard: () => [...organizationKeys.all, 'dashboard'] as const
 };
 
 export const organizationsQueryOptions = (filters: OrganizationFilters) =>
@@ -52,15 +53,55 @@ export const organizationFacetsQueryOptions = () =>
     staleTime: 5 * 60 * 1000
   });
 
+/**
+ * The dashboard's own aggregate.
+ *
+ * Keyed under `organizationKeys.all` deliberately: every registry write
+ * invalidates that root, and filling in a missing phone number must drop the
+ * alert that sent the user to fill it in.
+ */
+export const dashboardOverviewQueryOptions = () =>
+  queryOptions({
+    queryKey: organizationKeys.dashboard(),
+    queryFn: () => getDashboardOverview(),
+    staleTime: 60 * 1000
+  });
+
 export const organizationReportQueryOptions = (filters: OrganizationFilters) =>
   queryOptions({
     queryKey: organizationKeys.report(filters),
     queryFn: () => getOrganizationReport(filters)
   });
 
-/** Backs the time-remaining tabs on the term-ending-soon page. */
-export const organizationTermBucketCountsQueryOptions = (filters: OrganizationFilters) =>
+/**
+ * A report built from a full definition rather than a bare filter.
+ *
+ * The whole definition is the key: changing the grouping or adding the detail
+ * table produces a different document from the same rows, so they must not share
+ * a cache entry.
+ */
+export const organizationReportRunOptions = (definition: ReportDefinition) =>
   queryOptions({
-    queryKey: organizationKeys.termBucketCounts(filters),
-    queryFn: () => getOrganizationTermBucketCounts(filters)
+    queryKey: [...organizationKeys.all, 'report-run', definition] as const,
+    queryFn: () => runOrganizationReport(definition)
+  });
+
+/**
+ * Saved templates get their own root key, deliberately not under
+ * `organizationKeys.all`.
+ *
+ * Every organization write invalidates that root (see `mutations.ts`), and a
+ * template is unaffected by registry edits — hanging it there would refetch the
+ * template list on every row someone saves.
+ */
+export const reportTemplateKeys = {
+  all: ['report-templates'] as const,
+  list: () => [...reportTemplateKeys.all, 'list'] as const
+};
+
+export const reportTemplatesQueryOptions = () =>
+  queryOptions({
+    queryKey: reportTemplateKeys.list(),
+    queryFn: () => getReportTemplates(),
+    staleTime: 5 * 60 * 1000
   });

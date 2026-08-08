@@ -25,6 +25,8 @@ interface SelectFieldProps {
   required?: boolean;
   options: Option[];
   placeholder?: string;
+  /** Renders the trigger unusable — for a value the current user may not change. */
+  disabled?: boolean;
 }
 
 export function SelectField({
@@ -32,7 +34,8 @@ export function SelectField({
   description,
   required,
   options,
-  placeholder = 'Select an option'
+  placeholder = 'Select an option',
+  disabled
 }: SelectFieldProps) {
   const field = useFieldContext();
   const isTouched = useStore(field.store, (s) => s.meta.isTouched);
@@ -49,6 +52,7 @@ export function SelectField({
         <Select
           items={options}
           value={value}
+          disabled={disabled}
           onValueChange={(v) => field.handleChange(v ?? '')}
           onOpenChange={(open) => {
             if (!open) field.handleBlur();

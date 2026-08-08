@@ -8,8 +8,8 @@ import { OrganizationCreateButton } from '@/features/organizations/components/or
 import { OrganizationImportButton } from '@/features/organizations/components/organizations-import';
 import OrganizationsListing from '@/features/organizations/components/organizations-listing';
 import { ORGANIZATION_LABELS } from '@/features/organizations/constants/labels';
-import { requireUser } from '@/lib/auth/session';
-import { hasAnyRole } from '@/lib/auth/roles';
+import { can, canAny, requirePagePermission } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 
 export const metadata = {
   title: 'الجمعيات'
@@ -20,26 +20,31 @@ type PageProps = {
 };
 
 export default async function Page(props: PageProps) {
-  // The dashboard layout already calls this, but the check is repeated wherever
-  // data is actually reached — the layout is not a boundary this page controls.
-  const user = await requireUser();
+  // The dashboard layout already gates on a session, but the check is repeated
+  // wherever data is actually reached — the layout is not a boundary this page
+  // controls.
+  await requirePagePermission(PERMISSIONS.ORGANIZATIONS_READ);
 
   const searchParams = await props.searchParams;
   organizationsSearchParamsCache.parse(searchParams);
 
-  // One role gates create, edit, delete and import alike — they are all
-  // writes to the same registry.
-  const canEdit = hasAnyRole(user, ['admin']);
+  // Each header control asks for the capability it actually uses: a role may
+  // import without creating by hand, or create without deleting.
+  const [canCreate, canImport, canEdit] = await Promise.all([
+    can(PERMISSIONS.ORGANIZATIONS_CREATE),
+    can(PERMISSIONS.ORGANIZATIONS_IMPORT),
+    canAny([PERMISSIONS.ORGANIZATIONS_UPDATE, PERMISSIONS.ORGANIZATIONS_DELETE])
+  ]);
 
   return (
     <PageContainer
       pageTitle={ORGANIZATION_LABELS.page.listTitle}
       pageDescription={ORGANIZATION_LABELS.page.listDescription}
       pageHeaderAction={
-        canEdit ? (
+        canCreate || canImport ? (
           <div className='flex items-center gap-2'>
-            <OrganizationImportButton />
-            <OrganizationCreateButton />
+            {canImport && <OrganizationImportButton />}
+            {canCreate && <OrganizationCreateButton />}
           </div>
         ) : null
       }

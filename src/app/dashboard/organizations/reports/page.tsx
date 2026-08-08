@@ -4,15 +4,16 @@ import { Suspense } from 'react';
 
 import PageContainer from '@/components/layout/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
-import { describeFilters } from '@/features/organizations/api/describe-filters';
-import { organizationReportQueryOptions } from '@/features/organizations/api/queries';
 import {
-  organizationsSearchParamsCache,
-  serializeOrganizationsParams
-} from '@/features/organizations/api/search-params';
-import { OrganizationsReport } from '@/features/organizations/components/organizations-report';
+  organizationFacetsQueryOptions,
+  organizationReportQueryOptions,
+  reportTemplatesQueryOptions
+} from '@/features/organizations/api/queries';
+import { organizationsSearchParamsCache } from '@/features/organizations/api/search-params';
+import { ReportWorkspace } from '@/features/organizations/components/report-workspace';
 import { ORGANIZATION_LABELS } from '@/features/organizations/constants/labels';
-import { requireUser } from '@/lib/auth/session';
+import { requirePagePermission } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getQueryClient } from '@/lib/query-client';
 
 export const metadata = {
@@ -24,13 +25,22 @@ type PageProps = {
 };
 
 export default async function Page(props: PageProps) {
-  await requireUser();
+  // Seeing a report on screen and taking it away as a file are separate
+  // grants; this is the weaker of the two. The workspace hides each download
+  // control on its own permission, and every download route re-checks.
+  await requirePagePermission(PERMISSIONS.REPORTS_VIEW);
 
   const searchParams = await props.searchParams;
   organizationsSearchParamsCache.parse(searchParams);
 
-  // Deliberately without page/perPage: a report describes the whole result set,
-  // so paging is not part of its identity and must not split the cache key.
+  /*
+   * Prefetched from the URL only — the criteria are the workspace's from here
+   * on, since editing them in place makes them client state. This warms exactly
+   * the first render; every later filter is a client fetch.
+   *
+   * Deliberately without page/perPage: a report describes the whole result set,
+   * so paging is not part of its identity and must not split the cache key.
+   */
   const filters = {
     q: organizationsSearchParamsCache.get('q'),
     filters: organizationsSearchParamsCache.get('filters'),
@@ -40,17 +50,14 @@ export default async function Page(props: PageProps) {
 
   const queryClient = getQueryClient();
   void queryClient.prefetchQuery(organizationReportQueryOptions(filters));
+  void queryClient.prefetchQuery(reportTemplatesQueryOptions());
+  // The filter builder's option lists. Without this the workspace suspends as a
+  // whole on first paint, taking the criteria bar down with it.
+  void queryClient.prefetchQuery(organizationFacetsQueryOptions());
 
   // Rendered on the server so the print header and the export link agree on the
   // moment the report describes.
   const generatedAt = new Date().toISOString();
-
-  const queryString = serializeOrganizationsParams({
-    q: filters.q,
-    filters: filters.filters,
-    joinOperator: filters.joinOperator,
-    sort: filters.sort
-  });
 
   return (
     <PageContainer
@@ -58,31 +65,24 @@ export default async function Page(props: PageProps) {
       pageDescription={ORGANIZATION_LABELS.page.reportDescription}
     >
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense fallback={<ReportSkeleton />}>
-          <OrganizationsReport
-            filters={filters}
-            appliedFilters={describeFilters(filters)}
-            queryString={queryString}
-            generatedAt={generatedAt}
-          />
+        <Suspense fallback={<WorkspaceSkeleton />}>
+          <ReportWorkspace generatedAt={generatedAt} />
         </Suspense>
       </HydrationBoundary>
     </PageContainer>
   );
 }
 
-function ReportSkeleton() {
+function WorkspaceSkeleton() {
   return (
     <div className='flex flex-col gap-4'>
-      <Skeleton className='h-24 w-full' />
-      <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'>
-        {Array.from({ length: 6 }).map((_, index) => (
-          <Skeleton key={index} className='h-24 w-full' />
-        ))}
-      </div>
-      <div className='grid gap-4 lg:grid-cols-2'>
-        <Skeleton className='h-80 w-full' />
-        <Skeleton className='h-80 w-full' />
+      <Skeleton className='h-16 w-full rounded-xl' />
+      <div className='grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]'>
+        <Skeleton className='h-96 w-full rounded-xl' />
+        <div className='flex flex-col gap-4'>
+          <Skeleton className='h-56 w-full rounded-xl' />
+          <Skeleton className='h-40 w-full rounded-xl' />
+        </div>
       </div>
     </div>
   );

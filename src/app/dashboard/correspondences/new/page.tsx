@@ -4,8 +4,8 @@ import PageContainer from '@/components/layout/page-container';
 import { correspondenceOrganizationOptionsQueryOptions } from '@/features/correspondences/api/queries';
 import { CorrespondenceForm } from '@/features/correspondences/components/correspondence-form';
 import { CORRESPONDENCE_LABELS } from '@/features/correspondences/constants/labels';
-import { hasAnyRole } from '@/lib/auth/roles';
-import { requireUser } from '@/lib/auth/session';
+import { can } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getQueryClient } from '@/lib/query-client';
 
 export const metadata = {
@@ -13,8 +13,7 @@ export const metadata = {
 };
 
 export default async function Page() {
-  const user = await requireUser();
-  const canEdit = hasAnyRole(user, ['admin']);
+  const canCreate = await can(PERMISSIONS.CORRESPONDENCES_CREATE);
 
   const queryClient = getQueryClient();
   // Unlike the create sheet organizations uses (opened on top of an already
@@ -26,7 +25,7 @@ export default async function Page() {
     <PageContainer
       pageTitle={CORRESPONDENCE_LABELS.page.createTitle}
       pageDescription={CORRESPONDENCE_LABELS.page.createDescription}
-      access={canEdit}
+      access={canCreate}
       accessFallback={
         <p className='text-muted-foreground text-center text-lg'>
           {CORRESPONDENCE_LABELS.page.noAccess}

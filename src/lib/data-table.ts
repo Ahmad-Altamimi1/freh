@@ -4,9 +4,21 @@ import type { Column } from '@tanstack/react-table';
 import { dataTableConfig } from '@/config/data-table';
 
 export function getCommonPinningStyles<TData>({
-  column
+  column,
+  background = 'var(--background)'
 }: {
   column: Column<TData>;
+  /**
+   * What a pinned cell paints behind itself.
+   *
+   * A pinned cell is `position: sticky`, so it needs an opaque background or
+   * the columns it floats over show through it. It cannot be left to the row:
+   * `background` is not an inherited property, so the header row's `bg-muted`
+   * never reaches the cell — which is why the default paints a header cell in
+   * the body's colour and leaves a pale patch above the pinned column. Callers
+   * in a tinted row pass that row's colour instead.
+   */
+  background?: string;
 }): React.CSSProperties {
   const isPinned = column.getIsPinned();
   const isLastLeftPinnedColumn = isPinned === 'left' && column.getIsLastColumn('left');
@@ -29,7 +41,7 @@ export function getCommonPinningStyles<TData>({
     insetInlineStart: isPinned === 'left' ? `${column.getStart('left')}px` : undefined,
     insetInlineEnd: isPinned === 'right' ? `${column.getAfter('right')}px` : undefined,
     position: isPinned ? 'sticky' : 'relative',
-    background: isPinned ? 'var(--background)' : undefined,
+    background: isPinned ? background : undefined,
     width: column.getSize(),
     zIndex: isPinned ? 1 : 0
   };

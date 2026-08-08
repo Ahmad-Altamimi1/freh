@@ -12,19 +12,25 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createUserMutation, updateUserMutation } from '../api/mutations';
+import { assignableRolesQueryOptions } from '../api/queries';
+import { useSessionUser } from '@/components/layout/session-provider';
 import type { User } from '../api/types';
 import { toast } from 'sonner';
 import * as z from 'zod';
-import { userSchema, type UserFormValues } from '../schemas/user';
-import { ROLE_OPTIONS } from './users-table/options';
+import { createUserSchema, updateUserSchema, type UserFormValues } from '../schemas/user';
+import {
+  USER_FIELD_LABELS,
+  USER_FORM_LABELS,
+  USER_MESSAGES,
+  USER_VALIDATION_MESSAGES,
+  USERS_PAGE_LABELS
+} from '../constants/labels';
+import { STATUS_OPTIONS } from './users-table/options';
 
-const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Inactive', label: 'Inactive' },
-  { value: 'Invited', label: 'Invited' }
-];
+/** `FormSelectField` needs a non-empty value, so "no role" gets a sentinel. */
+const NO_ROLE = '__none__';
 
 interface UserFormSheetProps {
   user?: User;
@@ -34,24 +40,35 @@ interface UserFormSheetProps {
 
 export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) {
   const isEdit = !!user;
+  const sessionUser = useSessionUser();
+  // The service refuses to let anyone change their own role — locking the
+  // control here turns that rejection into something the user sees first.
+  const isSelf = user?.id === sessionUser.id;
+
+  // Not `useSuspenseQuery`: the "add user" trigger lives in the page header,
+  // outside the table's HydrationBoundary, and would suspend with no boundary
+  // above it.
+  const { data: roleOptions = [] } = useQuery(assignableRolesQueryOptions());
+
+  const roleFieldOptions = [{ value: NO_ROLE, label: USER_FORM_LABELS.noRole }, ...roleOptions];
 
   const createMutation = useMutation({
     ...createUserMutation,
     onSuccess: () => {
-      toast.success('User created successfully');
+      toast.success(USER_MESSAGES.created);
       onOpenChange(false);
       form.reset();
     },
-    onError: () => toast.error('Failed to create user')
+    onError: (error: Error) => toast.error(error.message || USER_MESSAGES.createFailed)
   });
 
   const updateMutation = useMutation({
     ...updateUserMutation,
     onSuccess: () => {
-      toast.success('User updated successfully');
+      toast.success(USER_MESSAGES.updated);
       onOpenChange(false);
     },
-    onError: () => toast.error('Failed to update user')
+    onError: (error: Error) => toast.error(error.message || USER_MESSAGES.updateFailed)
   });
 
   const form = useAppForm({
@@ -60,17 +77,26 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
       last_name: user?.last_name ?? '',
       email: user?.email ?? '',
       phone: user?.phone ?? '',
-      role: user?.role ?? '',
-      status: user?.status ?? 'Active'
+      role: user?.roles[0]?.key || NO_ROLE,
+      // 'Invited' is a derived state, not something this form can set — an
+      // invited user is simply not banned, which is exactly what 'Active'
+      // writes, so the account is left as it was.
+      status: user?.status === 'Inactive' ? 'Inactive' : 'Active',
+      password: ''
     } as UserFormValues,
     validators: {
-      onSubmit: userSchema
+      onSubmit: isEdit ? updateUserSchema : createUserSchema
     },
     onSubmit: async ({ value }) => {
+      const values: UserFormValues = {
+        ...value,
+        role: value.role === NO_ROLE ? '' : value.role
+      };
+
       if (isEdit) {
-        await updateMutation.mutateAsync({ id: user.id, values: value });
+        await updateMutation.mutateAsync({ id: user.id, values });
       } else {
-        await createMutation.mutateAsync(value);
+        await createMutation.mutateAsync(values);
       }
     }
   });
@@ -83,11 +109,11 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='flex flex-col'>
         <SheetHeader>
-          <SheetTitle>{isEdit ? 'Edit User' : 'New User'}</SheetTitle>
+          <SheetTitle>
+            {isEdit ? USER_FORM_LABELS.editTitle : USER_FORM_LABELS.createTitle}
+          </SheetTitle>
           <SheetDescription>
-            {isEdit
-              ? 'Update the user details below.'
-              : 'Fill in the details to create a new user.'}
+            {isEdit ? USER_FORM_LABELS.editDescription : USER_FORM_LABELS.createDescription}
           </SheetDescription>
         </SheetHeader>
 
@@ -97,77 +123,85 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
               <div className='grid grid-cols-2 gap-4'>
                 <FormTextField
                   name='first_name'
-                  label='First Name'
+                  label={USER_FIELD_LABELS.firstName}
                   required
-                  placeholder='John'
                   validators={{
-                    onBlur: z.string().min(2, 'First name must be at least 2 characters')
+                    onBlur: z.string().min(2, USER_VALIDATION_MESSAGES.firstName)
                   }}
                 />
                 <FormTextField
                   name='last_name'
-                  label='Last Name'
+                  label={USER_FIELD_LABELS.lastName}
                   required
-                  placeholder='Doe'
                   validators={{
-                    onBlur: z.string().min(2, 'Last name must be at least 2 characters')
+                    onBlur: z.string().min(2, USER_VALIDATION_MESSAGES.lastName)
                   }}
                 />
               </div>
 
               <FormTextField
                 name='email'
-                label='Email'
+                label={USER_FIELD_LABELS.email}
                 required
                 type='email'
-                placeholder='john@example.com'
+                dir='ltr'
+                placeholder='name@example.com'
+                description={USER_FORM_LABELS.emailHint}
                 validators={{
-                  onBlur: z.string().email('Please enter a valid email')
+                  onBlur: z.string().email(USER_VALIDATION_MESSAGES.email)
                 }}
               />
 
               <FormTextField
+                name='password'
+                label={isEdit ? USER_FIELD_LABELS.newPassword : USER_FIELD_LABELS.password}
+                required={!isEdit}
+                type='password'
+                dir='ltr'
+                placeholder={USER_FORM_LABELS.passwordPlaceholder}
+                description={
+                  isEdit ? USER_FORM_LABELS.passwordEditHint : USER_FORM_LABELS.passwordCreateHint
+                }
+              />
+
+              <FormTextField
                 name='phone'
-                label='Phone'
-                required
+                label={USER_FIELD_LABELS.phone}
                 type='tel'
-                placeholder='(555) 123-4567'
-                validators={{
-                  onBlur: z.string().min(1, 'Phone number is required')
-                }}
+                dir='ltr'
+                placeholder='07XXXXXXXX'
+                description={USER_FORM_LABELS.phoneHint}
               />
 
               <FormSelectField
                 name='role'
-                label='Role'
-                required
-                options={ROLE_OPTIONS}
-                placeholder='Select role'
-                validators={{
-                  onBlur: z.string().min(1, 'Please select a role')
-                }}
+                label={USER_FIELD_LABELS.role}
+                options={roleFieldOptions}
+                placeholder={USER_FORM_LABELS.selectRole}
+                disabled={isSelf}
+                description={isSelf ? USER_FORM_LABELS.selfRoleLocked : USER_FORM_LABELS.roleHint}
               />
 
-              <FormSelectField
-                name='status'
-                label='Status'
-                required
-                options={STATUS_OPTIONS}
-                placeholder='Select status'
-                validators={{
-                  onBlur: z.string().min(1, 'Please select a status')
-                }}
-              />
+              {isEdit && (
+                <FormSelectField
+                  name='status'
+                  label={USER_FIELD_LABELS.status}
+                  required
+                  options={STATUS_OPTIONS}
+                  placeholder={USER_FORM_LABELS.selectStatus}
+                  description={USER_FORM_LABELS.statusHint}
+                />
+              )}
             </form.Form>
           </form.AppForm>
         </div>
 
         <SheetFooter>
           <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
-            Cancel
+            {USER_FORM_LABELS.cancel}
           </Button>
           <Button type='submit' form='user-form-sheet' isLoading={isPending}>
-            <Icons.check /> {isEdit ? 'Update User' : 'Create User'}
+            <Icons.check /> {isEdit ? USER_FORM_LABELS.submitEdit : USER_FORM_LABELS.submitCreate}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -181,7 +215,7 @@ export function UserFormSheetTrigger() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Icons.add className='mr-2 h-4 w-4' /> Add User
+        <Icons.add className='me-2 h-4 w-4' /> {USERS_PAGE_LABELS.addUser}
       </Button>
       <UserFormSheet open={open} onOpenChange={setOpen} />
     </>

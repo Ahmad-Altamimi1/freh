@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { usePermissions } from '@/hooks/use-permissions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { deleteCorrespondenceMutation } from '../../api/mutations';
 import type { Correspondence } from '../../api/types';
 import { CORRESPONDENCE_LABELS } from '../../constants/labels';
@@ -28,6 +30,11 @@ interface CellActionProps {
 export function CellAction({ data }: CellActionProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  // Edit and delete are separately grantable, so each item renders on its own
+  // permission rather than on one "can write" flag.
+  const { can } = usePermissions();
+  const canUpdate = can(PERMISSIONS.CORRESPONDENCES_UPDATE);
+  const canDelete = can(PERMISSIONS.CORRESPONDENCES_DELETE);
 
   const deleteMutation = useMutation({
     ...deleteCorrespondenceMutation,
@@ -64,16 +71,20 @@ export function CellAction({ data }: CellActionProps) {
               <Icons.search className='size-4' />
               {CORRESPONDENCE_LABELS.actions.view}
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => router.push(`/dashboard/correspondences/${data.id}/edit`)}
-            >
-              <Icons.edit className='size-4' />
-              {CORRESPONDENCE_LABELS.actions.edit}
-            </DropdownMenuItem>
-            <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
-              <Icons.trash className='size-4' />
-              {CORRESPONDENCE_LABELS.actions.delete}
-            </DropdownMenuItem>
+            {canUpdate && (
+              <DropdownMenuItem
+                onClick={() => router.push(`/dashboard/correspondences/${data.id}/edit`)}
+              >
+                <Icons.edit className='size-4' />
+                {CORRESPONDENCE_LABELS.actions.edit}
+              </DropdownMenuItem>
+            )}
+            {canDelete && (
+              <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
+                <Icons.trash className='size-4' />
+                {CORRESPONDENCE_LABELS.actions.delete}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

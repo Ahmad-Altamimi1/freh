@@ -1,7 +1,7 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
-import { hasAnyRole } from '@/lib/auth/roles';
-import { requireUser } from '@/lib/auth/session';
+import { canAny } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getQueryClient } from '@/lib/query-client';
 import { correspondenceFacetsQueryOptions, correspondencesQueryOptions } from '../api/queries';
 import { correspondencesSearchParamsCache } from '../api/search-params';
@@ -16,7 +16,6 @@ import { CorrespondencesTable } from './correspondences-table';
  * hydrates.
  */
 export default async function CorrespondencesListing() {
-  const user = await requireUser();
   const filters = {
     page: correspondencesSearchParamsCache.get('page'),
     perPage: correspondencesSearchParamsCache.get('perPage'),
@@ -33,7 +32,14 @@ export default async function CorrespondencesListing() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <CorrespondencesTable canEdit={hasAnyRole(user, ['admin'])} />
+      {/* Whether the row-actions column exists at all. Which items it offers
+          is decided per permission inside the cell — see `cell-action.tsx`. */}
+      <CorrespondencesTable
+        canEdit={await canAny([
+          PERMISSIONS.CORRESPONDENCES_UPDATE,
+          PERMISSIONS.CORRESPONDENCES_DELETE
+        ])}
+      />
     </HydrationBoundary>
   );
 }

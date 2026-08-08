@@ -11,10 +11,6 @@ type BreadcrumbItem = {
 
 const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard': [{ title: 'Dashboard', link: '/dashboard' }],
-  '/dashboard/employee': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Employee', link: '/dashboard/employee' }
-  ],
   '/dashboard/organizations': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: 'الجمعيات', link: '/dashboard/organizations' }
@@ -22,10 +18,6 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard/correspondences': [
     { title: 'Dashboard', link: '/dashboard' },
     { title: 'المراسلات', link: '/dashboard/correspondences' }
-  ],
-  '/dashboard/product': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Product', link: '/dashboard/product' }
   ]
 };
 

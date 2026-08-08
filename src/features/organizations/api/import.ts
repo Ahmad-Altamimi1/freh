@@ -6,8 +6,8 @@ import { getDb } from '@/db';
 import { organizations } from '@/db/schema/organizations';
 import { buildSearchKey, normalizeArabic } from '@/lib/arabic';
 import { auditLog } from '@/lib/audit';
-import { hasAnyRole } from '@/lib/auth/roles';
-import { requireUser } from '@/lib/auth/session';
+import { requirePermission } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { organizationImportRowSchema } from '../schemas/organization';
 import type { ImportIssue, ImportPreview, ImportResult } from './types';
 import { parseOrganizationsWorkbook, REQUIRED_FIELDS, type ParsedRow } from './workbook';
@@ -15,10 +15,10 @@ import { parseOrganizationsWorkbook, REQUIRED_FIELDS, type ParsedRow } from './w
 /**
  * Excel import for the organizations registry.
  *
- * Both entry points require the `admin` role. Hiding the import link in the
- * navigation is a UX affordance; because `'use server'` makes each export a POST
- * endpoint, this check is the only thing standing between any signed-in user and
- * a full table rewrite.
+ * Both entry points require `organizations:import`. Hiding the import link in
+ * the navigation is a UX affordance; because `'use server'` makes each export a
+ * POST endpoint, this check is the only thing standing between any signed-in
+ * user and a full table rewrite.
  */
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -28,11 +28,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const CHUNK_SIZE = 200;
 
 async function requireImporter() {
-  const user = await requireUser();
-  if (!hasAnyRole(user, ['admin'])) {
-    throw new Error('غير مصرح لك باستيراد البيانات.');
-  }
-  return user;
+  return requirePermission(PERMISSIONS.ORGANIZATIONS_IMPORT, 'غير مصرح لك باستيراد البيانات.');
 }
 
 /** Reads the uploaded file out of the form, rejecting anything unusable. */

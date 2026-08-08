@@ -22,6 +22,15 @@ const baseConfig: NextConfig = {
     ]
   },
   transpilePackages: ['geist'],
+  /**
+   * Kept out of the server bundle and `require`d at runtime instead.
+   *
+   * `@sparticuz/chromium` resolves a Chromium binary relative to its own package
+   * directory, and `puppeteer-core` loads native protocol helpers the same way.
+   * Bundling either rewrites those paths and the PDF route fails at launch with
+   * a missing-executable error that only appears once deployed.
+   */
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
   }

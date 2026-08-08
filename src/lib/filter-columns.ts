@@ -117,9 +117,19 @@ function resolveRelativeRange(token: RelativeDateToken): [string, string] {
   }
 }
 
-/** True for columns where the empty string is a distinct value from NULL. */
+/**
+ * True for columns where the empty string is a real value and `LIKE` is legal.
+ *
+ * `dataType` alone is not enough. Drizzle reports `date`, `uuid` and friends as
+ * `'string'` because that is how they surface in TypeScript, but Postgres will
+ * not compare either one to `''` or match it against a pattern — it raises an
+ * invalid-input error rather than returning false. Checking the SQL type keeps
+ * an "is empty" filter on a date column to a plain NULL test.
+ */
+const STRING_SQL_TYPES = /^(text|varchar|char|citext)/;
+
 function isTextColumn(column: Column): boolean {
-  return column.dataType === 'string';
+  return column.dataType === 'string' && STRING_SQL_TYPES.test(column.getSQLType());
 }
 
 /**

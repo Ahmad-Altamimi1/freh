@@ -67,7 +67,7 @@ The project follows a feature-based folder structure designed for scalability in
 - Recharts for analytics/charts
 - Service layer per feature (`api/types.ts` → `api/service.ts` → `api/queries.ts`)
 - Route handlers at `src/app/api/` (for Route Handler or BFF patterns)
-- Mock data in `src/constants/mock-api*.ts` (default, swap via service layer)
+- Drizzle + Postgres via `getDb()` from `@/db`, reached only from `api/service.ts`
 - API client utility in `src/lib/api-client.ts` (for fetch-based patterns)
 
 ### Development Tools
@@ -86,10 +86,11 @@ The project follows a feature-based folder structure designed for scalability in
 ├── app/                    # Next.js App Router
 │   ├── auth/              # Sign-in route (no sign-up — users are created in Supabase)
 │   ├── dashboard/         # Dashboard routes (guarded by requireUser() in layout.tsx)
-│   │   ├── overview/      # Parallel routes (@area_stats, @bar_stats, etc.)
-│   │   ├── product/       # Product management pages
-│   │   ├── kanban/        # Kanban board page
-│   │   ├── chat/          # Messaging page
+│   │   ├── overview/      # Registry dashboard (stats, charts)
+│   │   ├── organizations/ # Organizations registry, detail, reports
+│   │   ├── correspondences/ # Correspondence log
+│   │   ├── users/         # User directory & role assignment
+│   │   ├── settings/roles/ # Role & permission editor
 │   │   └── notifications/ # Notifications page
 │   ├── api/               # API routes (if any)
 │   ├── layout.tsx         # Root layout with providers
@@ -113,21 +114,19 @@ The project follows a feature-based folder structure designed for scalability in
 │
 ├── features/              # Feature-based modules
 │   ├── auth/              # Sign-in form, sign-out, auth Server Actions
-│   ├── overview/          # Dashboard analytics
-│   ├── products/          # Product management (React Query + nuqs)
+│   ├── organizations/     # Organizations registry (React Query + nuqs)
 │   │   ├── api/
 │   │   │   ├── types.ts   # Type contract (response shapes, filters, payloads)
-│   │   │   ├── service.ts # Data access layer (swap for your backend)
+│   │   │   ├── service.ts # Data access layer (Drizzle + Supabase)
 │   │   │   └── queries.ts # React Query options + key factories
-│   │   ├── components/    # Listing, form, table components
+│   │   ├── components/    # Listing, form, table, report components
 │   │   ├── schemas/       # Zod schemas
-│   │   └── constants/     # Filter options
-│   ├── users/             # User management (React Query + nuqs)
+│   │   └── constants/     # Labels, filter options
+│   ├── correspondences/   # Correspondence log with file uploads
+│   ├── users/             # User directory (React Query + nuqs)
 │   │   ├── api/           # Same pattern: types.ts → service.ts → queries.ts
 │   │   └── components/    # Listing, table components
-│   ├── react-query-demo/  # React Query showcase (Pokemon API)
-│   ├── kanban/            # Kanban board with dnd-kit
-│   ├── chat/              # Messaging UI (conversations, bubbles, composer)
+│   ├── roles/             # Role & permission editor
 │   └── notifications/     # Notification center & store
 │
 ├── config/                # Configuration files
@@ -667,10 +666,6 @@ export const Icons = {
 | Text formatting | `bold`, `italic`, `underline`, `text`                                         |
 | Data / Charts   | `trendingUp`, `trendingDown`, `eyeOff`, `adjustments`                         |
 
-### Icon Showcase Page
-
-Browse all available icons at `/dashboard/elements/icons` — a searchable grid of every icon in the registry.
-
 ### Why This Pattern?
 
 - **Single source of truth** — swap icon packages by editing one file
@@ -764,4 +759,4 @@ See "Theming System" section above or `docs/themes.md`.
 9. **Page headers** - Always use `PageContainer` props (`pageTitle`, `pageDescription`, `pageHeaderAction`) for page headers. Never import `<Heading>` manually in pages — `PageContainer` handles that internally.
 10. **Forms** - Use TanStack Form via `useAppForm` from `@/components/ui/tanstack-form`. Never use `useState` inside `AppField` render props — extract stateful logic into separate components.
 11. **Button loading** - Use `<Button isLoading={isPending}>` for loading states. Uses CSS Grid overlap trick for zero layout shift. When `isLoading` is not passed, button behaves as default shadcn. `SubmitButton` in forms handles this automatically via form `isSubmitting` state.
-12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never import from `@/constants/mock-api*` directly in components.
+12. **Data layer** - Always go through the service layer: `types.ts` → `service.ts` → `queries.ts`. Components import types from `types.ts`, functions from `service.ts`, query options from `queries.ts`. Never reach for `getDb()` or a Supabase client directly in components.

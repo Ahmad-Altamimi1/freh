@@ -9,12 +9,11 @@ import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/table/data-table-advanced-toolbar';
-import {
-  DataTableFilterList,
-  type FilterListLabels
-} from '@/components/ui/table/data-table-filter-list';
+import { DataTableFilterList } from '@/components/ui/table/data-table-filter-list';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { usePermissions } from '@/hooks/use-permissions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getFiltersStateParser, getSortingStateParser } from '@/lib/parsers';
 import type { ExtendedColumnFilter, JoinOperator, Option } from '@/types/data-table';
 import { organizationFacetsQueryOptions, organizationsQueryOptions } from '../../api/queries';
@@ -24,34 +23,11 @@ import {
   PAGE_SIZE_OPTIONS
 } from '../../api/search-params';
 import type { Organization } from '../../api/types';
-import {
-  FILTER_OPERATOR_LABELS,
-  JOIN_OPERATOR_LABELS,
-  ORGANIZATION_LABELS,
-  RELATIVE_DATE_LABELS
-} from '../../constants/labels';
+import { ORGANIZATION_FILTER_LABELS } from '../../constants/filter-labels';
+import { ORGANIZATION_LABELS } from '../../constants/labels';
 import { getOrganizationColumns } from './columns';
 
 const COLUMN_ID_SET = new Set<string>(ORGANIZATION_COLUMN_IDS);
-
-/** Wiring for the shared filter builder, assembled from the feature's vocabulary. */
-const FILTER_LABELS: FilterListLabels = {
-  trigger: ORGANIZATION_LABELS.filters.trigger,
-  empty: ORGANIZATION_LABELS.filters.empty,
-  add: ORGANIZATION_LABELS.filters.add,
-  apply: ORGANIZATION_LABELS.filters.apply,
-  reset: ORGANIZATION_LABELS.filters.reset,
-  remove: ORGANIZATION_LABELS.filters.remove,
-  where: ORGANIZATION_LABELS.filters.where,
-  selectField: ORGANIZATION_LABELS.filters.selectField,
-  selectOperator: ORGANIZATION_LABELS.filters.selectOperator,
-  value: ORGANIZATION_LABELS.filters.value,
-  from: ORGANIZATION_LABELS.filters.from,
-  to: ORGANIZATION_LABELS.filters.to,
-  operator: FILTER_OPERATOR_LABELS,
-  join: JOIN_OPERATOR_LABELS,
-  relativeDate: RELATIVE_DATE_LABELS
-};
 
 interface OrganizationsTableProps {
   /**
@@ -64,6 +40,7 @@ interface OrganizationsTableProps {
 }
 
 export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
+  const { can } = usePermissions();
   /**
    * Every query-param write goes through this transition.
    *
@@ -121,7 +98,12 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
   );
 
   const columns = React.useMemo(
-    () => getOrganizationColumns({ districtOptions, classificationOptions, canEdit }),
+    () =>
+      getOrganizationColumns({
+        districtOptions,
+        classificationOptions,
+        canEdit
+      }),
     [districtOptions, classificationOptions, canEdit]
   );
 
@@ -223,7 +205,7 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
             onFiltersChange={onFiltersChange}
             joinOperator={params.joinOperator as JoinOperator}
             onJoinOperatorChange={onJoinOperatorChange}
-            labels={FILTER_LABELS}
+            labels={ORGANIZATION_FILTER_LABELS}
           />
         }
         actions={
@@ -241,19 +223,21 @@ export function OrganizationsTable({ canEdit }: OrganizationsTableProps) {
               <Icons.report />
               <span className='hidden sm:inline'>{ORGANIZATION_LABELS.actions.report}</span>
             </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              render={
-                <a
-                  href={`/api/organizations/export${currentQueryString}`}
-                  aria-label={ORGANIZATION_LABELS.actions.exportExcel}
-                />
-              }
-            >
-              <Icons.download />
-              <span className='hidden sm:inline'>{ORGANIZATION_LABELS.actions.exportExcel}</span>
-            </Button>
+            {can(PERMISSIONS.ORGANIZATIONS_EXPORT) && (
+              <Button
+                variant='outline'
+                size='sm'
+                render={
+                  <a
+                    href={`/api/organizations/export${currentQueryString}`}
+                    aria-label={ORGANIZATION_LABELS.actions.exportExcel}
+                  />
+                }
+              >
+                <Icons.download />
+                <span className='hidden sm:inline'>{ORGANIZATION_LABELS.actions.exportExcel}</span>
+              </Button>
+            )}
           </>
         }
       />

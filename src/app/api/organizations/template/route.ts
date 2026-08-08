@@ -1,5 +1,6 @@
 import { buildOrganizationsTemplate } from '@/features/organizations/api/workbook-export';
-import { hasAnyRole } from '@/lib/auth/roles';
+import { can } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { xlsxResponse } from '../response';
 
@@ -10,7 +11,9 @@ export async function GET() {
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
-  if (!hasAnyRole(user, ['admin'])) {
+  // Gated on the import permission rather than on export: a blank template is
+  // worthless to anyone who cannot upload it back, and it carries no data.
+  if (!(await can(PERMISSIONS.ORGANIZATIONS_IMPORT))) {
     return new Response('Forbidden', { status: 403 });
   }
 

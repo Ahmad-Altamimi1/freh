@@ -15,6 +15,7 @@ import { Icons } from '@/components/icons';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { USER_DELETE_LABELS, USER_MESSAGES, USER_TABLE_LABELS } from '../../constants/labels';
 import { UserFormSheet } from '../user-form-sheet';
 
 interface CellActionProps {
@@ -28,11 +29,11 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteUserMutation,
     onSuccess: () => {
-      toast.success('User deleted successfully');
+      toast.success(USER_MESSAGES.deleted);
       setDeleteOpen(false);
     },
-    onError: () => {
-      toast.error('Failed to delete user');
+    onError: (error: Error) => {
+      toast.error(error.message || USER_MESSAGES.deleteFailed);
     }
   });
 
@@ -43,22 +44,26 @@ export function CellAction({ data }: CellActionProps) {
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => deleteMutation.mutate(data.id)}
         loading={deleteMutation.isPending}
+        title={USER_DELETE_LABELS.title}
+        description={USER_DELETE_LABELS.description}
+        confirmLabel={USER_DELETE_LABELS.confirm}
+        cancelLabel={USER_DELETE_LABELS.cancel}
       />
       <UserFormSheet user={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger render={<Button variant='ghost' className='h-8 w-8 p-0' />}>
-          <span className='sr-only'>Open menu</span>
+          <span className='sr-only'>{USER_TABLE_LABELS.openMenu}</span>
           <Icons.ellipsis className='h-4 w-4' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{USER_TABLE_LABELS.actions}</DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <Icons.edit className='mr-2 h-4 w-4' /> Update
+            <Icons.edit className='me-2 h-4 w-4' /> {USER_TABLE_LABELS.edit}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setDeleteOpen(true)}>
-            <Icons.trash className='mr-2 h-4 w-4' /> Delete
+            <Icons.trash className='me-2 h-4 w-4' /> {USER_TABLE_LABELS.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

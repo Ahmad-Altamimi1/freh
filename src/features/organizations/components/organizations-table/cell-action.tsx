@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { usePermissions } from '@/hooks/use-permissions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { deleteOrganizationMutation } from '../../api/mutations';
 import type { Organization } from '../../api/types';
 import { ORGANIZATION_LABELS } from '../../constants/labels';
@@ -28,6 +30,12 @@ interface CellActionProps {
 
 export function CellAction({ data }: CellActionProps) {
   const router = useRouter();
+  // Edit and delete are separately grantable, so the menu renders each item on
+  // its own permission rather than on one "can write" flag. The column itself is
+  // only mounted for users holding at least one of them (see the listing).
+  const { can } = usePermissions();
+  const canUpdate = can(PERMISSIONS.ORGANIZATIONS_UPDATE);
+  const canDelete = can(PERMISSIONS.ORGANIZATIONS_DELETE);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -57,7 +65,7 @@ export function CellAction({ data }: CellActionProps) {
 
       {/* Mounted only while open so the form seeds from this row and is torn
           down afterwards, rather than holding a stale copy of every row. */}
-      {editOpen && (
+      {editOpen && canUpdate && (
         <OrganizationFormSheet organization={data} open={editOpen} onOpenChange={setEditOpen} />
       )}
 
@@ -81,14 +89,18 @@ export function CellAction({ data }: CellActionProps) {
               <Icons.search className='size-4' />
               {ORGANIZATION_LABELS.actions.view}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Icons.edit className='size-4' />
-              {ORGANIZATION_LABELS.actions.edit}
-            </DropdownMenuItem>
-            <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
-              <Icons.trash className='size-4' />
-              {ORGANIZATION_LABELS.actions.delete}
-            </DropdownMenuItem>
+            {canUpdate && (
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Icons.edit className='size-4' />
+                {ORGANIZATION_LABELS.actions.edit}
+              </DropdownMenuItem>
+            )}
+            {canDelete && (
+              <DropdownMenuItem variant='destructive' onClick={() => setDeleteOpen(true)}>
+                <Icons.trash className='size-4' />
+                {ORGANIZATION_LABELS.actions.delete}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -6,6 +6,7 @@ import { getDb } from '@/db';
 import { notifications, type NotificationRow } from '@/db/schema/notifications';
 import { requireUser } from '@/lib/auth/session';
 import type { NotificationAction } from '@/components/ui/notification-card';
+import { syncTermEndingNotifications } from '../lib/term-ending';
 import type { Notification, NotificationsResponse } from './types';
 
 // ============================================================
@@ -50,6 +51,11 @@ function toNotification(row: NotificationRow): Notification {
 
 export async function getNotifications(): Promise<NotificationsResponse> {
   const user = await requireUser();
+
+  // Read-through refresh: the daily cron is the only other writer, and it never
+  // fires under `next dev`. Idempotent on `(recipient_id, dedupe_key)`, so this
+  // inserts nothing once the day's alerts already exist.
+  await syncTermEndingNotifications(user);
 
   const rows = await getDb()
     .select()

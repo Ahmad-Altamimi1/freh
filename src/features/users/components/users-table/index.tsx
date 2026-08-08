@@ -1,15 +1,17 @@
 'use client';
 
+import * as React from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
-import { usersQueryOptions } from '../../api/queries';
-import { columns } from './columns';
+import { assignableRolesQueryOptions, usersQueryOptions } from '../../api/queries';
+import { getUserColumns } from './columns';
 
-const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
+/** Sortable column ids — kept in step with `getUserColumns`. */
+const COLUMN_IDS = ['name', 'email', 'role', 'status', 'last_sign_in_at'];
 
 export function UsersTable() {
   const [params] = useQueryStates({
@@ -17,7 +19,7 @@ export function UsersTable() {
     perPage: parseAsInteger.withDefault(10),
     name: parseAsString,
     role: parseAsString,
-    sort: getSortingStateParser(columnIds).withDefault([])
+    sort: getSortingStateParser(COLUMN_IDS).withDefault([])
   });
 
   const filters = {
@@ -29,6 +31,9 @@ export function UsersTable() {
   };
 
   const { data } = useSuspenseQuery(usersQueryOptions(filters));
+  const { data: roleOptions } = useSuspenseQuery(assignableRolesQueryOptions());
+
+  const columns = React.useMemo(() => getUserColumns(roleOptions), [roleOptions]);
 
   const pageCount = Math.ceil(data.total_users / params.perPage);
 

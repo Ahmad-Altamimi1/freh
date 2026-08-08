@@ -2,15 +2,13 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { getDb } from '@/db';
-import { notifications } from '@/db/schema/notifications';
+import {
+  getOrganizationsNearingTermEnd,
+  insertTermEndingNotifications,
+  listNotificationRecipientIds
+} from '@/features/notifications/lib/term-ending';
 import { auditLog } from '@/lib/audit';
 import { getServerEnv } from '@/lib/env';
-import {
-  buildTermEndingSoonRows,
-  getOrganizationsNearingTermEnd,
-  listAdminUserIds
-} from './notifications-for-term-end';
 
 /**
  * Daily term-end reminder job (see `vercel.json`'s `crons` entry).
@@ -48,26 +46,12 @@ export async function GET(request: NextRequest) {
   try {
     const { TERM_END_NOTICE_DAYS } = getServerEnv();
 
-    const [organizationsInWindow, adminIds] = await Promise.all([
+    const [organizationsInWindow, recipientIds] = await Promise.all([
       getOrganizationsNearingTermEnd(TERM_END_NOTICE_DAYS),
-      listAdminUserIds()
+      listNotificationRecipientIds()
     ]);
 
-    if (organizationsInWindow.length === 0 || adminIds.length === 0) {
-      return NextResponse.json({
-        organizationsInWindow: organizationsInWindow.length,
-        adminCount: adminIds.length,
-        created: 0
-      });
-    }
-
-    const rows = buildTermEndingSoonRows(adminIds, organizationsInWindow);
-
-    const created = await getDb()
-      .insert(notifications)
-      .values(rows)
-      .onConflictDoNothing({ target: [notifications.recipientId, notifications.dedupeKey] })
-      .returning({ id: notifications.id });
+    const created = await insertTermEndingNotifications(recipientIds, organizationsInWindow);
 
     await auditLog({
       action: 'CREATE',
@@ -75,15 +59,15 @@ export async function GET(request: NextRequest) {
       actor: { id: null, type: 'system' },
       metadata: {
         organizationsInWindow: organizationsInWindow.length,
-        adminCount: adminIds.length,
-        created: created.length
+        recipientCount: recipientIds.length,
+        created
       }
     });
 
     return NextResponse.json({
       organizationsInWindow: organizationsInWindow.length,
-      adminCount: adminIds.length,
-      created: created.length
+      recipientCount: recipientIds.length,
+      created
     });
   } catch (error) {
     console.error('term-notifications cron failed', error);

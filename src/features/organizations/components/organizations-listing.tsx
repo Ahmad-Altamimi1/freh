@@ -1,7 +1,7 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
-import { hasAnyRole } from '@/lib/auth/roles';
-import { requireUser } from '@/lib/auth/session';
+import { canAny } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { getQueryClient } from '@/lib/query-client';
 import { organizationFacetsQueryOptions, organizationsQueryOptions } from '../api/queries';
 import { organizationsSearchParamsCache } from '../api/search-params';
@@ -16,7 +16,6 @@ import { OrganizationsTable } from './organizations-table';
  * the prefetched entry is the one it hydrates.
  */
 export default async function OrganizationsListing() {
-  const user = await requireUser();
   const filters = {
     page: organizationsSearchParamsCache.get('page'),
     perPage: organizationsSearchParamsCache.get('perPage'),
@@ -33,7 +32,11 @@ export default async function OrganizationsListing() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <OrganizationsTable canEdit={hasAnyRole(user, ['admin'])} />
+      {/* Whether the row-actions column exists at all. Which items it offers
+          is decided per permission inside the cell — see `cell-action.tsx`. */}
+      <OrganizationsTable
+        canEdit={await canAny([PERMISSIONS.ORGANIZATIONS_UPDATE, PERMISSIONS.ORGANIZATIONS_DELETE])}
+      />
     </HydrationBoundary>
   );
 }

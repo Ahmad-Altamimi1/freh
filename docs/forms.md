@@ -610,7 +610,7 @@ const form = useAppForm({
 <Step1 form={form} fields={{ name: 'name', category: 'category' }} />
 ```
 
-See `src/features/forms/components/multi-step-product-form.tsx`.
+See `src/features/organizations/components/organizations-import.tsx` for a stepped flow in this codebase.
 
 ### Nested object fields
 
@@ -860,7 +860,7 @@ const { FormTextField, FormSelectField, FormTextareaField, FormFileUploadField }
 <form.AppField name="available-date">...</form.AppField>
 ```
 
-See `/dashboard/forms/basic` for the full working example.
+See `src/features/correspondences/components/correspondence-form.tsx` for a working example.
 
 ---
 
@@ -1029,21 +1029,12 @@ To include in `useFormFields`, add to its return object.
 
 ---
 
-## Dashboard Examples
+## Forms in This Codebase
 
-### Form Pages (`/dashboard/forms/...`)
-
-| Page                  | Route                         | Patterns demonstrated                                                                                                                                                                                                                           |
-| --------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic Form**        | `/dashboard/forms/basic`      | All 8 field types, `useFormFields`, `onBlur` + async validation, listeners, form data preview                                                                                                                                                   |
-| **Multi-Step Form**   | `/dashboard/forms/multi-step` | `withFieldGroup`, per-step Zod schemas, `revalidateLogic`, step navigation, review summary                                                                                                                                                      |
-| **Sheet & Dialog**    | `/dashboard/forms/sheet-form` | Form in Sheet with external submit button, form in Dialog, close + reset on success                                                                                                                                                             |
-| **Advanced Patterns** | `/dashboard/forms/advanced`   | Async validation (username check), linked fields (`onChangeListenTo` for password confirm), nested objects (`team.name`), dynamic array rows (members), dependent dropdowns (country → state with listener), `FormErrors`, `scrollToFirstError` |
-
-### Other Forms
-
-| Form          | File                                                   | Patterns                                   |
-| ------------- | ------------------------------------------------------ | ------------------------------------------ |
-| Product CRUD  | `src/features/products/components/product-form.tsx`    | Pattern 1, split schema, onBlur validators |
-| Sheet Product | `src/features/forms/components/sheet-product-form.tsx` | Pattern 2 in Sheet |
-| Auth          | `src/features/auth/components/user-auth-form.tsx`      | Pattern 2, minimal |
+| Form           | File                                                              | Patterns                                    |
+| -------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| Organization   | `src/features/organizations/components/organization-form-sheet.tsx` | Pattern 2 in Sheet, external submit button   |
+| Correspondence | `src/features/correspondences/components/correspondence-form.tsx`   | Pattern 1, file upload, onBlur validators    |
+| User           | `src/features/users/components/user-form-sheet.tsx`                 | Pattern 2 in Sheet, role multi-select        |
+| Role           | `src/features/roles/components/role-form-sheet.tsx`                 | Pattern 2 in Sheet, permission checkbox grid |
+| Auth           | `src/features/auth/components/user-auth-form.tsx`                   | Pattern 2, minimal                           |

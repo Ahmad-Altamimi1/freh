@@ -22,8 +22,16 @@ export default async function Page(props: PageProps) {
     organizationByIdOptions(params.organizationId).queryKey
   );
 
+  // The classification/district pair identifies the organization at a glance,
+  // so it belongs in the page header rather than repeated inside the record.
+  const pageDescription =
+    [organization?.classification, organization?.district].filter(Boolean).join(' · ') || undefined;
+
   return (
-    <PageContainer pageTitle={organization?.name ?? ORGANIZATION_LABELS.page.detailTitle}>
+    <PageContainer
+      pageTitle={organization?.name ?? ORGANIZATION_LABELS.page.detailTitle}
+      pageDescription={pageDescription}
+    >
       <div className='flex-1 space-y-4'>
         <HydrationBoundary state={dehydrate(queryClient)}>
           <OrganizationDetailPage organizationId={params.organizationId} />

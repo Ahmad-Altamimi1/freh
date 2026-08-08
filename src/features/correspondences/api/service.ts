@@ -7,8 +7,8 @@ import { correspondences } from '@/db/schema/correspondences';
 import { organizations } from '@/db/schema/organizations';
 import { normalizeArabic } from '@/lib/arabic';
 import { auditLog } from '@/lib/audit';
-import { hasAnyRole } from '@/lib/auth/roles';
-import { requireUser } from '@/lib/auth/session';
+import { requirePermission } from '@/lib/auth/access';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { buildFilterWhere, escapeLike, type FilterableColumns } from '@/lib/filter-columns';
 import { deletePrivateFile, getSignedFileUrl, uploadPrivateFile } from '@/lib/storage';
 import {
@@ -31,8 +31,9 @@ import type {
 // the database; `queries.ts` and every component import from here.
 //
 // Two rules hold throughout:
-//   1. `requireUser()` runs before any read, `requireEditor()` before any
-//      write. `'use server'` makes every export here reachable as a POST
+//   1. `requirePermission()` runs before every export, naming the specific
+//      capability it needs — create, update and delete are separately
+//      grantable. `'use server'` makes every export here reachable as a POST
 //      endpoint, so hiding a button in the UI guards nothing — this is the
 //      check that does.
 //   2. Filtering, counting and sorting all happen in Postgres behind one
@@ -111,7 +112,7 @@ function buildOrderBy(filters: CorrespondenceFilters) {
 export async function getCorrespondences(
   filters: CorrespondenceFilters
 ): Promise<CorrespondencesResponse> {
-  await requireUser();
+  await requirePermission(PERMISSIONS.CORRESPONDENCES_READ, NO_READ_ACCESS);
 
   const db = getDb();
   const where = buildWhere(filters);
@@ -141,7 +142,7 @@ export async function getCorrespondences(
 }
 
 export async function getCorrespondenceById(id: string): Promise<CorrespondenceWithFiles | null> {
-  await requireUser();
+  await requirePermission(PERMISSIONS.CORRESPONDENCES_READ, NO_READ_ACCESS);
 
   const [row] = await getDb()
     .select(SELECT_COLUMNS)
@@ -178,7 +179,7 @@ export async function getCorrespondenceById(id: string): Promise<CorrespondenceW
  * currently filtered to.
  */
 export async function getCorrespondenceFacets(): Promise<CorrespondenceFacets> {
-  await requireUser();
+  await requirePermission(PERMISSIONS.CORRESPONDENCES_READ, NO_READ_ACCESS);
 
   const rows = await getDb()
     .select({ value: correspondences.organizationId, label: organizations.name, count: count() })
@@ -205,13 +206,9 @@ export async function getCorrespondenceFacets(): Promise<CorrespondenceFacets> {
 /** Postgres foreign-key violation. */
 const FOREIGN_KEY_VIOLATION = '23503';
 
-async function requireEditor() {
-  const user = await requireUser();
-  if (!hasAnyRole(user, ['admin'])) {
-    throw new Error('غير مصرح لك بتعديل السجل.');
-  }
-  return user;
-}
+/** Shared refusal messages, so the same denial always reads the same. */
+const NO_READ_ACCESS = 'غير مصرح لك بالاطلاع على المراسلات.';
+const NO_WRITE_ACCESS = 'غير مصرح لك بتعديل المراسلات.';
 
 /**
  * Rethrows a foreign-key violation as something a user can act on — this can
@@ -279,7 +276,7 @@ async function cleanupRemovedFiles(files: CorrespondenceFile[]): Promise<void> {
 }
 
 export async function createCorrespondence(formData: FormData): Promise<{ id: string }> {
-  const user = await requireEditor();
+  const user = await requirePermission(PERMISSIONS.CORRESPONDENCES_CREATE, NO_WRITE_ACCESS);
 
   const fields = readScalarFields(formData);
   const uploaded = await uploadNewFiles(readNewFiles(formData));
@@ -316,7 +313,7 @@ export async function updateCorrespondence(
   id: string,
   formData: FormData
 ): Promise<{ id: string }> {
-  const user = await requireEditor();
+  const user = await requirePermission(PERMISSIONS.CORRESPONDENCES_UPDATE, NO_WRITE_ACCESS);
 
   const fields = readScalarFields(formData);
   const retainedPaths = formData.getAll('retainedFilePaths').map(String);
@@ -376,7 +373,7 @@ export async function updateCorrespondence(
 }
 
 export async function deleteCorrespondence(id: string): Promise<{ id: string }> {
-  const user = await requireEditor();
+  const user = await requirePermission(PERMISSIONS.CORRESPONDENCES_DELETE, NO_WRITE_ACCESS);
 
   const [deleted] = await getDb()
     .delete(correspondences)

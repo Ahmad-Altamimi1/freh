@@ -203,19 +203,33 @@ export async function renderPrintPageToPdf(options: RenderPrintPageOptions): Pro
     // authenticate as them — it renders exactly what this user is allowed to
     // see, nothing more, and a caller who lost the permission between the two
     // checks is refused there as well.
-    const cookie = request.headers.get('cookie');
-    if (cookie) await page.setExtraHTTPHeaders({ Cookie: cookie });
+    //
+    // Build the cookie string from `request.cookies` rather than the raw
+    // `Cookie` header: the proxy middleware may have rotated the Supabase
+    // refresh token, updating the cookie store but invalidating the original
+    // header value. Forwarding the stale header makes Chromium hit the proxy
+    // with a dead token and land on the sign-in page.
+    const cookieString = request.cookies
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join('; ');
+    if (cookieString) await page.setExtraHTTPHeaders({ Cookie: cookieString });
 
     const response = await page.goto(printUrl.toString(), {
       waitUntil: 'networkidle0',
       timeout: 45_000
     });
 
-    // A redirect to sign-in returns 200 with a login page, so status alone is
-    // not enough — but a hard failure should not be silently rendered as a PDF
-    // of an error page either.
     if (!response || !response.ok()) {
       throw new PrintRenderError('تعذّر إنشاء المستند.', 502);
+    }
+
+    // A redirect to sign-in returns 200 — a successful page load, just the
+    // wrong page. Catch it by checking whether Chromium ended up on the URL
+    // we asked for rather than somewhere else.
+    const finalUrl = page.url();
+    if (!finalUrl.includes('/print/')) {
+      throw new PrintRenderError('انتهت الجلسة — أعد تسجيل الدخول وحاول مجددًا.', 401);
     }
 
     // Arabic shapes correctly only once the webfont is in place; without this

@@ -5,6 +5,8 @@ import * as React from 'react';
 import { toast } from 'sonner';
 
 import { Icons } from '@/components/icons';
+import { usePermissions } from '@/hooks/use-permissions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +32,7 @@ interface MembersManagerProps {
 
 export function MembersManager({ organizationId, members: initialMembers }: MembersManagerProps) {
   const queryClient = useQueryClient();
+  const canManage = usePermissions().can(PERMISSIONS.MEMBERS_UPDATE);
   const [members, setMembers] = React.useState<Member[]>(initialMembers);
   const [selected, setSelected] = React.useState<Set<number>>(new Set());
   const [editIndex, setEditIndex] = React.useState<number | null>(null);
@@ -139,46 +142,50 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
 
   const tableSection = members.length > 0 && (
     <div className='space-y-3'>
-      <div className='flex items-center gap-2'>
-        <Button onClick={openAdd} variant='outline' size='sm'>
-          <Icons.add className='size-4' />
-          {ORGANIZATION_LABELS.form.addMember}
-        </Button>
-        {selected.size > 0 && (
-          <Button
-            variant='destructive'
-            size='sm'
-            onClick={deleteSelected}
-            isLoading={saveMutation.isPending}
-            className='rounded-lg'
-          >
-            <Icons.trash className='size-3.5' />
-            {ORGANIZATION_LABELS.form.deleteSelected} ({selected.size})
+      {canManage && (
+        <div className='flex items-center gap-2'>
+          <Button onClick={openAdd} variant='outline' size='sm'>
+            <Icons.add className='size-4' />
+            {ORGANIZATION_LABELS.form.addMember}
           </Button>
-        )}
-      </div>
+          {selected.size > 0 && (
+            <Button
+              variant='destructive'
+              size='sm'
+              onClick={deleteSelected}
+              isLoading={saveMutation.isPending}
+              className='rounded-lg'
+            >
+              <Icons.trash className='size-3.5' />
+              {ORGANIZATION_LABELS.form.deleteSelected} ({selected.size})
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className='overflow-hidden rounded-xl border border-border'>
         <table className='w-full text-right text-sm'>
           <thead>
             <tr className='border-b border-border bg-muted/50'>
-              <th className='w-12 px-4 py-3'>
-                <button
-                  type='button'
-                  role='checkbox'
-                  aria-checked={allSelected}
-                  aria-label={ORGANIZATION_LABELS.form.selectAll}
-                  onClick={toggleAll}
-                  className={cn(
-                    'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
-                    allSelected
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border hover:border-foreground/50'
-                  )}
-                >
-                  {allSelected && <Icons.check className='size-3.5' />}
-                </button>
-              </th>
+              {canManage && (
+                <th className='w-12 px-4 py-3'>
+                  <button
+                    type='button'
+                    role='checkbox'
+                    aria-checked={allSelected}
+                    aria-label={ORGANIZATION_LABELS.form.selectAll}
+                    onClick={toggleAll}
+                    className={cn(
+                      'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
+                      allSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border hover:border-foreground/50'
+                    )}
+                  >
+                    {allSelected && <Icons.check className='size-3.5' />}
+                  </button>
+                </th>
+              )}
               <th className='px-4 py-3 font-medium text-muted-foreground'>#</th>
               <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.form.memberName}
@@ -192,9 +199,11 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
               <th className='px-4 py-3 font-medium text-muted-foreground'>
                 {ORGANIZATION_LABELS.members.jobTitle}
               </th>
-              <th className='w-24 px-4 py-3 font-medium text-muted-foreground'>
-                {ORGANIZATION_LABELS.actions.rowActions}
-              </th>
+              {canManage && (
+                <th className='w-24 px-4 py-3 font-medium text-muted-foreground'>
+                  {ORGANIZATION_LABELS.actions.rowActions}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -203,23 +212,25 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                 key={i}
                 className='border-b border-border/50 transition-colors last:border-0 hover:bg-muted/40'
               >
-                <td className='px-4 py-3'>
-                  <button
-                    type='button'
-                    role='checkbox'
-                    aria-checked={selected.has(i)}
-                    aria-label={`تحديد ${member.name}`}
-                    onClick={() => toggleOne(i)}
-                    className={cn(
-                      'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
-                      selected.has(i)
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:border-foreground/50'
-                    )}
-                  >
-                    {selected.has(i) && <Icons.check className='size-3.5' />}
-                  </button>
-                </td>
+                {canManage && (
+                  <td className='px-4 py-3'>
+                    <button
+                      type='button'
+                      role='checkbox'
+                      aria-checked={selected.has(i)}
+                      aria-label={`تحديد ${member.name}`}
+                      onClick={() => toggleOne(i)}
+                      className={cn(
+                        'flex size-5 items-center justify-center rounded-[4px] border-2 transition-all',
+                        selected.has(i)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border hover:border-foreground/50'
+                      )}
+                    >
+                      {selected.has(i) && <Icons.check className='size-3.5' />}
+                    </button>
+                  </td>
+                )}
                 <td className='px-4 py-3.5 text-muted-foreground'>{i + 1}</td>
                 <td className='px-4 py-3.5 font-medium text-foreground'>{member.name}</td>
                 <td className='px-4 py-3.5 text-muted-foreground'>
@@ -241,26 +252,28 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
                   )}
                 </td>
                 <td className='px-4 py-3.5 text-muted-foreground'>{member.jobTitle || '—'}</td>
-                <td className='px-4 py-3.5'>
-                  <div className='flex items-center gap-1'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => openEdit(i)}
-                      className='size-8 text-muted-foreground hover:text-foreground'
-                    >
-                      <Icons.edit className='size-3.5' />
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => setDeleteIndex(i)}
-                      className='size-8 text-muted-foreground hover:text-destructive'
-                    >
-                      <Icons.trash className='size-3.5' />
-                    </Button>
-                  </div>
-                </td>
+                {canManage && (
+                  <td className='px-4 py-3.5'>
+                    <div className='flex items-center gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => openEdit(i)}
+                        className='size-8 text-muted-foreground hover:text-foreground'
+                      >
+                        <Icons.edit className='size-3.5' />
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => setDeleteIndex(i)}
+                        className='size-8 text-muted-foreground hover:text-destructive'
+                      >
+                        <Icons.trash className='size-3.5' />
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -274,10 +287,12 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
       <div className='text-center'>
         <Icons.teams className='mx-auto mb-3 size-10 text-muted-foreground/40' />
         <p className='text-sm text-muted-foreground'>{ORGANIZATION_LABELS.members.noMembers}</p>
-        <Button onClick={openAdd} variant='outline' size='sm' className='mt-4'>
-          <Icons.add className='size-4' />
-          {ORGANIZATION_LABELS.form.addMember}
-        </Button>
+        {canManage && (
+          <Button onClick={openAdd} variant='outline' size='sm' className='mt-4'>
+            <Icons.add className='size-4' />
+            {ORGANIZATION_LABELS.form.addMember}
+          </Button>
+        )}
       </div>
     </div>
   );

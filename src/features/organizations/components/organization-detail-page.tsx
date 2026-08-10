@@ -70,7 +70,10 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const { setTitle: setBreadcrumbTitle } = useBreadcrumbOverride();
-  const canExportPdf = usePermissions().can(PERMISSIONS.REPORTS_EXPORT_PDF);
+  const permissions = usePermissions();
+  const canExportPdf = permissions.can(PERMISSIONS.REPORTS_EXPORT_PDF);
+  const canImportMembers = permissions.can(PERMISSIONS.ORGANIZATIONS_IMPORT);
+  const canDelete = permissions.can(PERMISSIONS.ORGANIZATIONS_DELETE);
 
   const { data: organization } = useSuspenseQuery(organizationByIdOptions(organizationId));
 
@@ -340,14 +343,18 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
                 </p>
               </div>
             </div>
-            <Button
-              nativeButton={false}
-              render={<Link href={`/dashboard/organizations/${organization.id}/import-members`} />}
-              variant='outline'
-            >
-              <Icons.fileImport className='size-4' />
-              {ORGANIZATION_LABELS.members.importButton}
-            </Button>
+            {canImportMembers && (
+              <Button
+                nativeButton={false}
+                render={
+                  <Link href={`/dashboard/organizations/${organization.id}/import-members`} />
+                }
+                variant='outline'
+              >
+                <Icons.fileImport className='size-4' />
+                {ORGANIZATION_LABELS.members.importButton}
+              </Button>
+            )}
           </div>
           <div className='p-6'>
             <MembersManager organizationId={organization.id} members={organization.members} />
@@ -358,26 +365,33 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
         <OrganizationCorrespondences organizationId={organization.id} />
 
         {/* 6. Danger zone — irreversible actions live apart from the record, at the
-            end of the page, so deleting cannot be mistaken for editing. */}
-        <section className='rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-5'>
-          <div className='flex flex-wrap items-center justify-between gap-4'>
-            <div className='flex items-start gap-3'>
-              <Icons.warning className='mt-0.5 size-5 shrink-0 text-destructive' />
-              <div className='space-y-1'>
-                <h2 className='text-sm font-semibold text-destructive'>
-                  {DETAIL_LABELS.dangerZone.title}
-                </h2>
-                <p className='text-sm text-muted-foreground'>
-                  {DETAIL_LABELS.dangerZone.description}
-                </p>
+            end of the page, so deleting cannot be mistaken for editing. Only shown
+            to users who can actually delete. */}
+        {canDelete && (
+          <section className='rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-5'>
+            <div className='flex flex-wrap items-center justify-between gap-4'>
+              <div className='flex items-start gap-3'>
+                <Icons.warning className='mt-0.5 size-5 shrink-0 text-destructive' />
+                <div className='space-y-1'>
+                  <h2 className='text-sm font-semibold text-destructive'>
+                    {DETAIL_LABELS.dangerZone.title}
+                  </h2>
+                  <p className='text-sm text-muted-foreground'>
+                    {DETAIL_LABELS.dangerZone.description}
+                  </p>
+                </div>
               </div>
+              <Button
+                variant='destructive'
+                onClick={() => setDeleteOpen(true)}
+                className='shrink-0'
+              >
+                <Icons.trash className='size-4' />
+                {ORGANIZATION_LABELS.actions.delete}
+              </Button>
             </div>
-            <Button variant='destructive' onClick={() => setDeleteOpen(true)} className='shrink-0'>
-              <Icons.trash className='size-4' />
-              {ORGANIZATION_LABELS.actions.delete}
-            </Button>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </>
   );

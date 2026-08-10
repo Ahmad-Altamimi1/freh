@@ -15,7 +15,7 @@ import type { UserStatus } from '../api/types';
 
 export const USERS_PAGE_LABELS = {
   title: 'المستخدمون',
-  description: 'حسابات المستخدمين في Supabase Auth — الصلاحيات وحالة الدخول.',
+  description: 'حسابات المستخدمين.',
   addUser: 'إضافة مستخدم'
 } as const;
 

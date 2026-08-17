@@ -6,8 +6,9 @@ FROM oven/bun:1 AS dependencies
 
 WORKDIR /app
 
-# Copy package-related files to leverage Docker cache
-COPY package.json bun.lock* ./
+# No `bun.lock*` glob: a missing lockfile must fail the build, not silently
+# resolve fresh versions and produce an image nobody can reproduce.
+COPY package.json bun.lock ./
 
 # Install dependencies with frozen lockfile for reproducible builds
 RUN --mount=type=cache,target=/root/.bun/install/cache \
@@ -55,6 +56,15 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Chromium + an Arabic system font for the PDF routes — see the long note in
+# ./Dockerfile, which does the same thing on the node base image.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-noto-core \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Copy public assets
 COPY --from=builder --chown=bun:bun /app/public ./public

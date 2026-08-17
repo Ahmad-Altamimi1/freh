@@ -45,21 +45,28 @@ const postgresPassword = randomBytes(24).toString('base64url');
 const dashboardPassword = randomBytes(18).toString('base64url');
 const cronSecret = randomBytes(24).toString('base64url');
 
+// postgres-meta encrypts stored connection strings with this. It is read by
+// both the `meta` and `studio` services and must be identical in each.
+const pgMetaCryptoKey = randomBytes(32).toString('base64url');
+
 const line = '='.repeat(70);
 process.stdout.write(`
 ${line}
   GENERATED SECRETS — store securely, never commit to git
 ${line}
 
-# ── 1) Supabase stack: paste into  deploy/self-host/.env  ─────────────
+# ── 1) The server: paste into  /opt/registry/.env  ────────────────────
+#     Both the Supabase stack and the app service read this one file.
 POSTGRES_PASSWORD=${postgresPassword}
 JWT_SECRET=${jwtSecret}
 ANON_KEY=${anonKey}
 SERVICE_ROLE_KEY=${serviceKey}
 DASHBOARD_USERNAME=admin
 DASHBOARD_PASSWORD=${dashboardPassword}
+CRON_SECRET=${cronSecret}
+PG_META_CRYPTO_KEY=${pgMetaCryptoKey}
 
-# ── 2) The app: paste into  .env.local  ──────────────────────────────
+# ── 2) Only if you run the app OUTSIDE docker: paste into .env.local ──
 #     (URLs below use a placeholder IP — replace 10.0.0.5 with the real
 #      ministry-LAN address of THIS server, and keep the port 8000.)
 NEXT_PUBLIC_SUPABASE_URL=http://10.0.0.5:8000

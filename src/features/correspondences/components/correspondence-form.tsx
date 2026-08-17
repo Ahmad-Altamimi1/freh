@@ -12,7 +12,11 @@ import { FilePreview, type UploadedFile } from '@/components/ui/file-preview';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { useBreadcrumbOverride } from '@/hooks/use-breadcrumbs';
 
-import { createCorrespondenceMutation, updateCorrespondenceMutation } from '../api/mutations';
+import {
+  createCorrespondenceMutation,
+  invalidateCorrespondences,
+  updateCorrespondenceMutation
+} from '../api/mutations';
 import {
   correspondenceByIdOptions,
   correspondenceOrganizationOptionsQueryOptions
@@ -61,6 +65,7 @@ export function CorrespondenceForm({ initialData }: CorrespondenceFormProps) {
   const createMutation = useMutation({
     ...createCorrespondenceMutation,
     onSuccess: (result) => {
+      invalidateCorrespondences();
       toast.success(CORRESPONDENCE_LABELS.form.created);
       router.push(`/dashboard/correspondences/${result.id}`);
     },
@@ -70,6 +75,7 @@ export function CorrespondenceForm({ initialData }: CorrespondenceFormProps) {
   const updateMutation = useMutation({
     ...updateCorrespondenceMutation,
     onSuccess: (result) => {
+      invalidateCorrespondences();
       toast.success(CORRESPONDENCE_LABELS.form.updated);
       router.push(`/dashboard/correspondences/${result.id}`);
     },

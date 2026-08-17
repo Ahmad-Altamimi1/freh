@@ -8,13 +8,22 @@ FROM node:${NODE_VERSION} AS dependencies
 
 WORKDIR /app
 
-# Install bun to use bun.lock for dependency resolution
+# bun.lock, not package-lock.json. `.gitignore` excludes package-lock.json, so
+# it does not exist in a fresh clone — an `npm ci` here builds on a developer's
+# machine and fails on the deployment server, which is the worst possible place
+# to find out. bun.lock is the lockfile this repo actually tracks.
 RUN npm install -g bun
 
-# Copy package-related files to leverage Docker cache
-COPY package.json bun.lock* ./
+# No `bun.lock*` glob: a missing lockfile must fail the build, not silently
+# resolve fresh versions and produce an image nobody can reproduce.
+COPY package.json bun.lock ./
 
-# Install dependencies with frozen lockfile for reproducible builds
+# Install dependencies with frozen lockfile for reproducible builds.
+#
+# If this fails with "lockfile had changes, but lockfile is frozen", bun.lock
+# has drifted from package.json. Regenerate it — do not relax the flag:
+#   docker run --rm -v "$PWD:/host" oven/bun:1 sh -c \
+#     'mkdir /b && cd /b && cp /host/package.json . && bun install && cp bun.lock /host/'
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --no-save --frozen-lockfile
 
@@ -60,6 +69,27 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Chromium for the PDF routes (/api/organizations/report/pdf and the profile
+# document). @sparticuz/chromium — the package used on Vercel — ships a binary
+# built against a Lambda base image and does not run on Debian slim, so install
+# the distro's own Chromium and point the launcher at it. `launchBrowser()` in
+# src/lib/pdf/print-to-pdf.ts checks PUPPETEER_EXECUTABLE_PATH first, which is
+# exactly this case.
+#
+# The Arabic font is not optional. Puppeteer renders the letterhead header and
+# footer templates in a separate context with no access to the page's
+# self-hosted web fonts, so a container with no system Arabic face prints the
+# ministry letterhead as empty boxes.
+#
+# Costs roughly 500MB of image size. Remove this block only if PDF export is
+# not used at all.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-noto-core \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Copy public assets
 COPY --from=builder --chown=node:node /app/public ./public

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { createUserMutation, updateUserMutation } from '../api/mutations';
+import { createUserMutation, invalidateUsers, updateUserMutation } from '../api/mutations';
 import { assignableRolesQueryOptions } from '../api/queries';
 import { useSessionUser } from '@/components/layout/session-provider';
 import type { User } from '../api/types';
@@ -55,6 +55,7 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const createMutation = useMutation({
     ...createUserMutation,
     onSuccess: () => {
+      invalidateUsers();
       toast.success(USER_MESSAGES.created);
       onOpenChange(false);
       form.reset();
@@ -65,6 +66,7 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const updateMutation = useMutation({
     ...updateUserMutation,
     onSuccess: () => {
+      invalidateUsers();
       toast.success(USER_MESSAGES.updated);
       onOpenChange(false);
     },

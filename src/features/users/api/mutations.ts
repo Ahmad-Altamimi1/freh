@@ -4,10 +4,14 @@ import { createUser, updateUser, deleteUser } from './service';
 import { userKeys } from './queries';
 import type { UserMutationPayload } from './types';
 
+export function invalidateUsers() {
+  getQueryClient().invalidateQueries({ queryKey: userKeys.all });
+}
+
 export const createUserMutation = mutationOptions({
   mutationFn: (data: UserMutationPayload) => createUser(data),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
+    invalidateUsers();
   }
 });
 
@@ -15,13 +19,13 @@ export const updateUserMutation = mutationOptions({
   mutationFn: ({ id, values }: { id: string; values: UserMutationPayload }) =>
     updateUser(id, values),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
+    invalidateUsers();
   }
 });
 
 export const deleteUserMutation = mutationOptions({
   mutationFn: (id: string) => deleteUser(id),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
+    invalidateUsers();
   }
 });

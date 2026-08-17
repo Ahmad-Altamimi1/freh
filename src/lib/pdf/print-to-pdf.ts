@@ -15,11 +15,18 @@ import { APP_CREDIT, APP_CREDIT_AFFILIATION, copyrightYear } from '@/config/app-
  * same engine that renders the on-screen page, so the PDF is typographically
  * identical to the preview by construction.
  *
- * The Arabic font is not a system dependency: `next/font/google` self-hosts IBM
- * Plex Sans Arabic under `/_next/static/media`, so the headless browser fetches
- * it from this same origin. A bare serverless container with no Arabic system
- * font still renders correctly — but only if the webfont has finished loading,
- * which is what the `document.fonts.ready` wait below guarantees.
+ * The Arabic font is not a system dependency *for the page body*:
+ * `next/font/google` self-hosts IBM Plex Sans Arabic under
+ * `/_next/static/media`, so the headless browser fetches it from this same
+ * origin. A bare serverless container with no Arabic system font still renders
+ * the body correctly — but only if the webfont has finished loading, which is
+ * what the `document.fonts.ready` wait below guarantees.
+ *
+ * The margin boxes are the exception. Chromium renders the header and footer
+ * templates as isolated documents that cannot reach the page's stylesheets, so
+ * the letterhead falls back to whatever the *system* provides — hence the Noto
+ * Arabic names in their font stacks, and the font package the self-host
+ * Dockerfile installs. Without one, only the letterhead prints as boxes.
  *
  * Every caller is a `nodejs`-runtime route: Chromium cannot run on the edge.
  */
@@ -90,7 +97,7 @@ async function getEmblem(): Promise<string> {
 function buildHeaderTemplate(emblem: string, letterhead: PrintLetterhead): string {
   return `
     <div dir="rtl" style="width:100%;box-sizing:border-box;padding:0 14mm;
-                          font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;
+                          font-family:'IBM Plex Sans Arabic','Noto Naskh Arabic','Noto Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;
                           font-size:8pt;color:#444;-webkit-print-color-adjust:exact;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8mm;
                   border-bottom:0.4mm solid #333;padding-bottom:1.5mm;">
@@ -123,7 +130,7 @@ function buildHeaderTemplate(emblem: string, letterhead: PrintLetterhead): strin
 function buildFooterTemplate(letterhead: PrintLetterhead): string {
   return `
     <div dir="rtl" style="width:100%;box-sizing:border-box;padding:0 14mm;
-                          font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;
+                          font-family:'IBM Plex Sans Arabic','Noto Naskh Arabic','Noto Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;
                           font-size:8pt;color:#555;-webkit-print-color-adjust:exact;">
       <div style="display:flex;align-items:center;justify-content:space-between;
                   border-top:0.3mm solid #999;padding-top:1.5mm;">

@@ -6,3 +6,11 @@
 # treat already-applied migrations as pending. Re-running them fails on the
 # first `CREATE TABLE`/`CREATE POLICY` that already exists.
 *.sql text eol=lf
+
+# Shell scripts and node CLIs run on the Linux deployment server. A CRLF
+# checkout makes the kernel read the shebang as `/usr/bin/env bash\r`, and the
+# very first command fails with "bad interpreter: No such file or directory" —
+# on the server, during install, with no obvious cause. Same for the `#!/usr/bin/env
+# node` scripts. Force LF regardless of the developer's platform.
+*.sh  text eol=lf
+*.mjs text eol=lf

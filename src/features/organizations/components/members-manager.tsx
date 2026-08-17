@@ -19,7 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { AlertModal } from '@/components/modal/alert-modal';
-import { updateOrganizationMembersMutation } from '../api/mutations';
+import { invalidateOrganizations, updateOrganizationMembersMutation } from '../api/mutations';
 import { organizationKeys } from '../api/queries';
 import type { Member } from '../api/types';
 import { ORGANIZATION_LABELS } from '../constants/labels';
@@ -54,6 +54,7 @@ export function MembersManager({ organizationId, members: initialMembers }: Memb
   const saveMutation = useMutation({
     ...updateOrganizationMembersMutation,
     onSuccess: () => {
+      invalidateOrganizations();
       toast.success(ORGANIZATION_LABELS.form.updated);
       queryClient.invalidateQueries({ queryKey: organizationKeys.detail(organizationId) });
     },

@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteUserMutation } from '../../api/mutations';
+import { deleteUserMutation, invalidateUsers } from '../../api/mutations';
 import type { User } from '../../api/types';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
@@ -29,6 +29,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteUserMutation,
     onSuccess: () => {
+      invalidateUsers();
       toast.success(USER_MESSAGES.deleted);
       setDeleteOpen(false);
     },

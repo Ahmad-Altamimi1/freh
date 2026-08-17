@@ -19,7 +19,11 @@ import {
 } from '@/components/ui/sheet';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 import { formatDateAr } from '@/lib/format';
-import { createOrganizationMutation, updateOrganizationMutation } from '../api/mutations';
+import {
+  createOrganizationMutation,
+  invalidateOrganizations,
+  updateOrganizationMutation
+} from '../api/mutations';
 import { organizationFacetsQueryOptions } from '../api/queries';
 import type { Organization } from '../api/types';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
@@ -70,18 +74,17 @@ export function OrganizationFormSheet({
   const createMutation = useMutation({
     ...createOrganizationMutation,
     onSuccess: () => {
+      invalidateOrganizations();
       toast.success(LABELS.created);
       onOpenChange(false);
     },
-    // The server distinguishes a duplicate from any other failure; surface its
-    // message rather than a generic one, since "same name and national id" is
-    // something the user can actually fix.
     onError: (error) => toast.error(error.message || LABELS.createFailed)
   });
 
   const updateMutation = useMutation({
     ...updateOrganizationMutation,
     onSuccess: () => {
+      invalidateOrganizations();
       toast.success(LABELS.updated);
       onOpenChange(false);
     },

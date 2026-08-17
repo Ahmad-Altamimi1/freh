@@ -16,55 +16,120 @@
 
 ## 1) تصدير قاعدة البيانات من السحابة
 
-الأهم: صدّر مخطط `auth` أيضاً حتى تنتقل الحسابات بكلماتها — فلا أحد يحتاج إعادة
-تعيين كلمة المرور.
+**ثلاث عمليات تصدير منفصلة، لا واحدة.** السبب مهم:
+
+| المخطط | الطريقة | لماذا |
+|---|---|---|
+| `public` | مخطط + بيانات | جداولك أنت — تُنقل كاملة |
+| `auth` | **بيانات فقط** | البنية يملكها GoTrue المحلي وقد تختلف نسخته عن السحابة؛ استيراد بنيتها فوق المحلية قد يعطّل تسجيل الدخول |
+| `storage` | **بيانات فقط** | نفس السبب — `storage-api` المحلي أنشأ بنيته أصلاً |
+
+> إجراء `--clean --schema=auth` على المخططات الثلاث معاً — وهو ما كان مكتوباً هنا
+> سابقاً — يحذف جداول الخدمة المحلية ويضع مكانها بنية نسخة أخرى. تجنّبه.
+
+لا تحتاج تثبيت `postgresql-client`: نفّذ `pg_dump` داخل نفس صورة Postgres.
 
 ```bash
-# من الجهاز المتصل بالإنترنت
 CLOUD_DB="postgresql://postgres.<ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres"
 
-pg_dump "$CLOUD_DB" \
-  --clean --if-exists --quote-all-identifiers \
-  --schema=public --schema=auth --schema=storage \
-  -f registry-cloud.sql
+docker run --rm -v "$PWD:/out" -e PGURL="$CLOUD_DB" supabase/postgres:17.6.1.136 sh -c '
+  pg_dump "$PGURL" --data-only --table=auth.users --table=auth.identities -f /out/cloud-auth.sql
+  pg_dump "$PGURL" --schema=public --clean --if-exists                    -f /out/cloud-public.sql
+  pg_dump "$PGURL" --data-only --table=storage.objects                    -f /out/cloud-storage.sql
+'
 ```
 
-> إذا فضّلت أداة Supabase: `supabase db dump --db-url "$CLOUD_DB" -f registry-cloud.sql`.
+> استخدم **منفذ 5432** (session)، لا 6543 — `pg_dump` لا يعمل عبر pooler المعاملات.
 
 ## 2) استورد إلى القاعدة المحلية
 
-انقل `registry-cloud.sql` إلى السيرفر ثم:
+**الترتيب إلزامي**: `auth` أولاً، لأن `public.user_roles` يشير إلى `auth.users`.
 
 ```bash
-# على سيرفر الوزارة
-cat registry-cloud.sql | docker exec -i supabase-db psql -U postgres postgres
+for f in cloud-auth cloud-public cloud-storage; do
+  docker exec -i supabase-db psql -U postgres -d postgres -q < "$f.sql"
+done
 ```
 
-تحقق من العدد:
+**ثلاثة أخطاء متوقعة وغير ضارة** أثناء `cloud-public` — لا توقف الاستيراد بسببها:
+
+```
+ERROR: cannot drop schema public because other objects depend on it
+ERROR: schema "public" already exists
+ERROR: permission denied to change default privileges     (×12)
+```
+
+سببها أن `--clean` يحاول حذف مخطط `public` نفسه وتعديل صلاحيات افتراضية يملكها
+`supabase_admin`. الجداول والبيانات تُنقل بالكامل رغمها.
+
+## 2ب) تحقّق بالمقارنة، لا بالتخمين
+
+شغّل نفس الاستعلام على الاثنين وقارن — الأرقام يجب أن تتطابق:
 
 ```bash
-docker exec -it supabase-db psql -U postgres -c \
-  "select count(*) as orgs from public.organizations; select count(*) as users from auth.users;"
+docker exec supabase-db psql -U postgres -d postgres -tAc "
+select 'organizations: ' || count(*) from public.organizations
+union all select 'correspondences: ' || count(*) from public.correspondences
+union all select 'board_renewals: '  || count(*) from public.board_renewals
+union all select 'auth.users: '      || count(*) from auth.users
+union all select 'storage.objects: ' || count(*) from storage.objects;"
 ```
 
-يفترض ترى ~140 جمعية و3 مستخدمين. لو ظهرت، القاعدة تمام.
+ثم افحص ما لا تكشفه الأعداد:
+
+```bash
+docker exec supabase-db psql -U postgres -d postgres -tAc "
+-- ترميز عربي سليم؟ يجب أن يظهر الاسم مقروءاً لا رموزاً
+select name from public.organizations limit 1;
+-- كلمات السر انتقلت؟ يجب أن يساوي العدد الكلي (bcrypt يبدأ بـ \$2)
+select count(*) from auth.users where encrypted_password like '\$2%';"
+```
+
+> `auth.users` قد يزيد بواحد إن كنت أنشأت حساب اختبار محلياً قبل الاستيراد —
+> الاستيراد يضيف ولا يستبدل.
 
 ---
 
-## 3) نقل ملفات التخزين
+## 3) نقل ملفات التخزين — **خطوة إلزامية لا تُهمَل**
 
-الملفات تُخزَّن في بكت `private`. نزّلها من السحابة وارفعها للمحلي.
+الـ dump نقل جدول `storage.objects`، أي **فهرس** الملفات لا محتواها. بدون هذه
+الخطوة كل مرفق يبدو موجوداً في الواجهة، ثم يفشل تحميله بـ **HTTP 500** لأن
+الملف غير موجود في مخزن الملفات المحلي. هذا العطل لا يظهر في أي فحص أعداد.
 
-**أ) نزّل من السحابة** — الأسهل عبر Studio السحابي (Storage → private → تحديد
-الكل → تنزيل)، أو برمجياً بـ `supabase storage` CLI. ضعها في مجلد `./private/`.
+أنشئ البكت أولاً (غير عام):
 
-**ب) ارفع للمحلي** — أنشئ البكت أولاً في Studio المحلي (`private`، غير عام)، ثم
-ارفع نفس الملفات بنفس المسارات عبر Studio المحلي (Storage → private → Upload)،
-أو بسكربت بسيط يستخدم `SERVICE_ROLE_KEY` المحلي.
+```bash
+curl -X POST "$LOCAL_URL/storage/v1/bucket" \
+  -H "apikey: $LOCAL_SERVICE_KEY" -H "Authorization: Bearer $LOCAL_SERVICE_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"id":"private","name":"private","public":false}'
+```
 
-> **بديل سريع للحجم الصغير**: لو الملفات قليلة، السحب/الإفلات في Studio المحلي
-> أسرع من كتابة سكربت. حافظ على نفس أسماء المسارات حتى تبقى الروابط في القاعدة
-> صحيحة.
+ثم انسخ الملفات بـ [`copy-storage.mjs`](./copy-storage.mjs) — يقرأ قائمة الملفات
+من الفهرس المحلي نفسه، فينسخ بالضبط ما تتوقعه القاعدة وبنفس المسارات:
+
+```bash
+CLOUD_URL=https://<ref>.supabase.co \
+CLOUD_SERVICE_KEY=<service_role من لوحة السحابة> \
+LOCAL_URL=http://10.0.0.5:8000 \
+LOCAL_SERVICE_KEY=<SERVICE_ROLE_KEY المحلي> \
+node copy-storage.mjs private
+```
+
+السكربت **لا يحذف شيئاً** من أي طرف، وإعادة تشغيله آمنة — يستبدل الموجود
+(`x-upsert`)، فنسخة انقطعت في منتصفها تحتاج تشغيلة أخرى فقط.
+
+**تحقّق** بأن ملفاً فعلياً صار يُجلب (لا 500):
+
+```bash
+OBJ=$(docker exec supabase-db psql -U postgres -d postgres -tAc \
+  "select name from storage.objects limit 1;" | tr -d '\r')
+SIGNED=$(curl -s -X POST "$LOCAL_URL/storage/v1/object/sign/private/$OBJ" \
+  -H "apikey: $LOCAL_SERVICE_KEY" -H "Authorization: Bearer $LOCAL_SERVICE_KEY" \
+  -H 'Content-Type: application/json' -d '{"expiresIn":60}' \
+  | node -pe "JSON.parse(require('fs').readFileSync(0)).signedURL")
+curl -s -o /dev/null -w "%{http_code}\n" "$LOCAL_URL/storage/v1$SIGNED"   # 200 = تمام
+```
 
 ---
 

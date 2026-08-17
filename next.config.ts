@@ -1,6 +1,41 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
+/** Derived from the config type rather than imported from `next/dist` internals. */
+type RemotePattern = NonNullable<NonNullable<NextConfig['images']>['remotePatterns']>[number];
+
+/**
+ * Allows `next/image` to load from a self-hosted Supabase.
+ *
+ * Hosted Supabase always answers on `https://<ref>.supabase.co`, which the
+ * static pattern below covers. A self-hosted stack on a ministry LAN answers on
+ * something like `http://10.0.0.5:8000` instead — a different scheme, host and
+ * port — and the optimizer rejects any remote URL it was not told about, so
+ * every signed storage preview 400s. Deriving the pattern from the URL the app
+ * was built against keeps the two in step: there is no second variable to
+ * forget, and on Vercel this returns nothing at all.
+ *
+ * Read at build time, which is correct — `remotePatterns` is baked into the
+ * build, and so is the client's copy of NEXT_PUBLIC_SUPABASE_URL.
+ */
+function selfHostedSupabasePattern(): RemotePattern[] {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!raw) return [];
+
+  try {
+    const { protocol, hostname, port } = new URL(raw);
+    if (protocol !== 'http:' && protocol !== 'https:') return [];
+    // Already covered by the wildcard entry below.
+    if (hostname.endsWith('.supabase.co')) return [];
+
+    return [{ protocol: protocol === 'http:' ? 'http' : 'https', hostname, port }];
+  } catch {
+    // A malformed URL is the app's problem to report at runtime, not a reason
+    // to fail the build here.
+    return [];
+  }
+}
+
 // Define the base Next.js configuration
 const baseConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
@@ -18,7 +53,8 @@ const baseConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
         port: ''
-      }
+      },
+      ...selfHostedSupabasePattern()
     ]
   },
   transpilePackages: ['geist'],

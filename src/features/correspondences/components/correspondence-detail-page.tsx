@@ -14,7 +14,7 @@ import { useBreadcrumbOverride } from '@/hooks/use-breadcrumbs';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
 import { formatBytes } from '@/lib/utils';
 import { correspondenceByIdOptions } from '../api/queries';
-import { deleteCorrespondenceMutation } from '../api/mutations';
+import { deleteCorrespondenceMutation, invalidateCorrespondences } from '../api/mutations';
 import {
   CORRESPONDENCE_FIELD_LABELS,
   CORRESPONDENCE_LABELS,
@@ -54,6 +54,7 @@ export function CorrespondenceDetailPage({
   const deleteMutation = useMutation({
     ...deleteCorrespondenceMutation,
     onSuccess: () => {
+      invalidateCorrespondences();
       toast.success(CORRESPONDENCE_LABELS.delete.success);
       router.push('/dashboard/correspondences');
     },

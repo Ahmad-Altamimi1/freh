@@ -12,9 +12,10 @@
  *
  * The password is read from your shell, never stored by this script. Prefer
  * passing it via an environment variable if you would rather it stay out of
- * your shell history:
+ * your shell history — the positional password then disappears entirely, so
+ * the next argument is the role:
  *
- *   NEW_USER_PASSWORD='...' node scripts/create-user.mjs someone@example.com
+ *   NEW_USER_PASSWORD='...' node scripts/create-user.mjs someone@example.com [role]
  *
  * `role` is optional and is written to app_metadata, which only the service
  * role key can set — that is what makes it safe to authorize on. See
@@ -43,8 +44,15 @@ function loadEnv() {
   throw new Error(`No env file found. Expected one of: ${ENV_FILES.join(', ')}`);
 }
 
-const [email, passwordArg, role] = process.argv.slice(2);
-const password = passwordArg ?? process.env.NEW_USER_PASSWORD;
+const [email, ...rest] = process.argv.slice(2);
+
+// With NEW_USER_PASSWORD set there is no positional password, so the next
+// argument is the role. Reading argv[1] as the password regardless would turn
+// `create-user.mjs someone@example.com admin` into an account whose password
+// is literally "admin" — silently, since that clears the length check.
+const envPassword = process.env.NEW_USER_PASSWORD;
+const password = envPassword ?? rest[0];
+const role = envPassword ? rest[0] : rest[1];
 
 if (!email || !password) {
   console.error('Usage: node scripts/create-user.mjs <email> <password> [role]');

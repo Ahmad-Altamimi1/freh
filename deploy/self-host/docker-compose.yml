@@ -1,85 +1,204 @@
 # =============================================================================
-# Supabase — trimmed self-host stack for the associations registry.
+# Supabase + the registry app — trimmed self-host stack.
+#
+# Derived from the official self-host compose at a PINNED commit:
+#   https://github.com/supabase/supabase  @  9e225a279b33e4e6e1452e573a40a6a25aa2cb2f
+#   ("chore(self-hosted): update 2026-08-03")
+#
+# That commit is the last coherent Kong-based release: the very next self-host
+# update replaced Kong with Envoy. Pinning matters more than it looks — the
+# `volumes/` config files and the image tags are ONE set. Cloning the repo's
+# default branch while keeping older image tags produces a stack that starts and
+# then dies in the gateway, which is exactly how this file was found to be
+# broken. Fetch `volumes/` from the same commit named above, nothing else.
 #
 # Keeps only what the app uses: db + auth + rest + storage(+imgproxy) + kong +
 # meta + studio. The heavy services (realtime, functions, analytics, vector,
 # supavisor) are intentionally absent — the app never calls them.
 #
 # HOW TO USE
-#   1. git clone --depth 1 https://github.com/supabase/supabase
-#   2. cp -r supabase/docker/* /opt/registry/     (gives you volumes/ init files)
-#   3. Replace the cloned docker-compose.yml with THIS file.
-#   4. Fill .env  (see .env.sample here + run generate-secrets.mjs).
-#   5. docker compose up -d
+#   1. Fetch volumes/ from the pinned commit (see README.md, step 1).
+#   2. Fill .env  (see .env.sample here + run generate-secrets.mjs).
+#   3. docker compose up -d                       (Supabase only)
+#   4. docker compose --profile app up -d         (Supabase + the app)
 #
-# The image tags below form a coherent Supabase self-host set. If any image
-# fails to pull, check the current tag in the official repo's docker-compose.yml
-# and bump it here — nothing else changes.
+# The `app` service sits behind a compose profile so that step 3 works before
+# the app image exists — you build and load that image separately (see
+# README.md), and compose would otherwise refuse to start anything at all.
+#
+# DELIBERATE DIVERGENCES FROM UPSTREAM (do not "fix" these back):
+#   • Postgres data and storage files live in NAMED VOLUMES, not bind mounts
+#     under ./volumes/. Upstream binds them; a bind mount for PGDATA fails on
+#     Docker Desktop for Windows, and named volumes are what backup.sh reads.
+#   • The published Postgres port is separate from the internal one.
 # =============================================================================
 
 name: supabase
 
 services:
-  studio:
-    container_name: supabase-studio
-    image: supabase/studio:2025.06.30-sha-6f5982d
+  # ---------------------------------------------------------------------------
+  # The Next.js app. Not built here: this file runs on a server that may have no
+  # internet and no checkout of the source. Build the image elsewhere with the
+  # repo's Dockerfile, move it over, then start this service.
+  # ---------------------------------------------------------------------------
+  app:
+    container_name: registry-app
+    image: ${APP_IMAGE:-registry-app:latest}
+    profiles: ['app']
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      kong:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    ports:
+      - ${APP_PORT:-3000}:3000
+    environment:
+      # ⚠️ These three are NOT runtime configuration, despite appearing here.
+      # Next.js replaces every `process.env.NEXT_PUBLIC_*` with a string literal
+      # at build time — verified in this image:
+      #   .next/server/chunks: {NEXT_PUBLIC_SUPABASE_URL:"http://10.0.0.5:8000"}
+      # so the app ignores whatever is set below. Changing SUPABASE_PUBLIC_URL in
+      # .env moves Supabase but NOT the app's idea of where Supabase is; that
+      # needs `docker build --build-arg`, see README step 1 of the app section.
+      #
+      # They stay here on purpose: they are the values the image was built with,
+      # so a mismatch between these and the build args is visible in one file
+      # instead of being invisible until something breaks.
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+      NEXT_PUBLIC_SENTRY_DISABLED: 'true'
+
+      # Server-only. Never build args — they would be baked into an image layer.
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-private}
+      CRON_SECRET: ${CRON_SECRET}
+      TERM_END_NOTICE_DAYS: ${TERM_END_NOTICE_DAYS:-10}
+
+      # Drizzle reaches Postgres over the compose network, so the LAN port does
+      # not have to be open for the app's sake. `db` is the service name below.
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      DIRECT_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
     healthcheck:
+      # Any non-5xx means the server is up; `/` legitimately redirects to
+      # sign-in for an anonymous request.
       test:
         [
           'CMD',
           'node',
           '-e',
-          "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"
+          "fetch('http://127.0.0.1:3000/').then((r) => {if (r.status >= 500) throw new Error(r.status)})"
+        ]
+      timeout: 10s
+      interval: 10s
+      retries: 5
+      start_period: 20s
+
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:2026.08.03-sha-022b374
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\""
         ]
       timeout: 10s
       interval: 5s
       retries: 3
+      start_period: 20s
     depends_on:
       meta:
         condition: service_started
     environment:
+      HOSTNAME: '0.0.0.0'
+
       STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_READ_WRITE: postgres
+
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+
       DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
       DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
       SUPABASE_URL: http://kong:8000
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+
+      ENABLED_FEATURES_LOGS_ALL: 'false'
+
+      SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
+      EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
+    volumes:
+      - ./volumes/snippets:/app/snippets:z
+      - ./volumes/functions:/app/edge-functions:ro,z
 
   kong:
     container_name: supabase-kong
-    image: kong:2.8.1
+    image: kong/kong:3.9.3
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - api-gw
+    healthcheck:
+      test: ['CMD', 'kong', 'health']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      studio:
+        condition: service_healthy
     ports:
       - ${KONG_HTTP_PORT}:8000/tcp
       - ${KONG_HTTPS_PORT}:8443/tcp
-    environment:
-      KONG_DATABASE: 'off'
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
-      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # Renders environment variables into the declarative config, then starts Kong.
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
-    depends_on:
-      auth:
-        condition: service_started
-      rest:
-        condition: service_started
     volumes:
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
+      - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+      KONG_ROUTER_FLAVOR: expressions
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_DNS_VALID_TTL: 5
+      # Every plugin kong.yml references must be listed here or Kong refuses to
+      # load the declarative config at all and restarts forever.
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      KONG_PROXY_ACCESS_LOG: /dev/stdout combined
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      # The new opaque (sb_…) key format. Left empty on purpose: the entrypoint
+      # script detects that and falls back to legacy HS256 keys, which is what
+      # generate-secrets.mjs produces.
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    entrypoint: ['/bin/sh', '/home/kong/kong-entrypoint.sh']
 
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.177.0
+    image: supabase/gotrue:v2.189.0
     restart: unless-stopped
     healthcheck:
       test:
@@ -114,8 +233,11 @@ services:
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_EXP: ${JWT_EXPIRY}
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}
 
       # Email flows off: user creation needs no confirmation, no SMTP required.
+      # This is why none of the upstream SMTP_* / MAILER_URLPATHS_* variables
+      # appear here or in .env.sample.
       GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
@@ -124,15 +246,24 @@ services:
 
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.12
+    image: postgrest/postgrest:v14.12
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'postgrest', '--ready']
+      interval: 5s
+      timeout: 5s
+      retries: 3
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
       PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
       PGRST_JWT_SECRET: ${JWT_SECRET}
       PGRST_DB_USE_LEGACY_GUCS: 'false'
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
@@ -144,7 +275,7 @@ services:
 
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.25.7
+    image: supabase/storage-api:v1.60.4
     restart: unless-stopped
     healthcheck:
       test:
@@ -159,6 +290,7 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy
@@ -170,14 +302,19 @@ services:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
       POSTGREST_URL: http://rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      REQUEST_ALLOW_X_FORWARDED_PATH: 'true'
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      # Stubs: only meaningful for the S3 backend, which this stack does not use.
+      GLOBAL_S3_BUCKET: stub
       TENANT_ID: stub
       REGION: stub
-      GLOBAL_S3_BUCKET: stub
+      S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID:-}
+      S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET:-}
       ENABLE_IMAGE_TRANSFORMATION: 'true'
       IMGPROXY_URL: http://imgproxy:5001
     volumes:
@@ -185,7 +322,7 @@ services:
 
   imgproxy:
     container_name: supabase-imgproxy
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:v3.30.1
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'imgproxy', 'health']
@@ -196,13 +333,14 @@ services:
       IMGPROXY_BIND: ':5001'
       IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
       IMGPROXY_USE_ETAG: 'true'
-      IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
+      IMGPROXY_AUTO_WEBP: ${IMGPROXY_AUTO_WEBP:-true}
+      IMGPROXY_MAX_SRC_RESOLUTION: 16.8
     volumes:
       - supabase_storage:/var/lib/storage:z
 
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.91.0
+    image: supabase/postgres-meta:v0.96.6
     restart: unless-stopped
     depends_on:
       db:
@@ -212,25 +350,28 @@ services:
       PG_META_DB_HOST: ${POSTGRES_HOST}
       PG_META_DB_PORT: ${POSTGRES_PORT}
       PG_META_DB_NAME: ${POSTGRES_DB}
-      PG_META_DB_USER: supabase_admin
+      PG_META_DB_USER: postgres
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
 
   db:
     container_name: supabase-db
-    image: supabase/postgres:15.8.1.060
+    image: supabase/postgres:17.6.1.136
     restart: unless-stopped
     # These init scripts come from the official clone (volumes/db/*). They set up
     # the roles and schemas Supabase expects. Scripts for removed services just
     # create unused schemas — harmless.
     volumes:
-      - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:z
-      - ./volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:z
-      - ./volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:z
-      - ./volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:z
-      - ./volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:z
-      - ./volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:z
-      - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:z
-      - supabase_db_data:/var/lib/postgresql/data:z
+      - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ./volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ./volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      - ./volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:Z
+      - ./volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      - ./volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      - supabase_db_data:/var/lib/postgresql/data:Z
+      # Persists the pgsodium decryption key between restarts.
+      - db-config:/etc/postgresql-custom
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres', '-h', 'localhost']
       interval: 5s
@@ -246,11 +387,16 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: ${JWT_EXPIRY}
-    # Expose Postgres on the LAN so the app (Drizzle) can reach it. If the app
-    # runs on THIS same server, delete this ports block and connect via the
-    # docker network / localhost instead — never expose 5432 to the internet.
+    # Expose Postgres on the LAN so migrations and any external tooling can
+    # reach it. The app itself does not need this — it connects to `db` over the
+    # compose network — so on a single-server install this block can go away
+    # entirely. Never expose 5432 to the internet.
+    #
+    # The published port is separate from POSTGRES_PORT on purpose: a host that
+    # already runs its own Postgres needs a different outside port without
+    # rewiring every internal connection string.
     ports:
-      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+      - ${POSTGRES_PUBLISHED_PORT:-5432}:${POSTGRES_PORT}
     command:
       - postgres
       - -c
@@ -261,3 +407,4 @@ services:
 volumes:
   supabase_db_data:
   supabase_storage:
+  db-config:

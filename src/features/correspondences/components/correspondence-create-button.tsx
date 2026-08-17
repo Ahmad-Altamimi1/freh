@@ -18,7 +18,7 @@ import {
 import { FilePreview } from '@/components/ui/file-preview';
 import { useAppForm, useFormFields } from '@/components/ui/tanstack-form';
 
-import { createCorrespondenceMutation } from '../api/mutations';
+import { createCorrespondenceMutation, invalidateCorrespondences } from '../api/mutations';
 import { correspondenceOrganizationOptionsQueryOptions } from '../api/queries';
 import {
   CORRESPONDENCE_FIELD_LABELS,
@@ -60,6 +60,7 @@ function CorrespondenceCreateDialog({
   const mutation = useMutation({
     ...createCorrespondenceMutation,
     onSuccess: () => {
+      invalidateCorrespondences();
       toast.success(CORRESPONDENCE_LABELS.form.created);
       onOpenChange(false);
     },

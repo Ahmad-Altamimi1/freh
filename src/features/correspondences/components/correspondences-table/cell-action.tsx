@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { deleteCorrespondenceMutation } from '../../api/mutations';
+import { deleteCorrespondenceMutation, invalidateCorrespondences } from '../../api/mutations';
 import type { Correspondence } from '../../api/types';
 import { CORRESPONDENCE_LABELS } from '../../constants/labels';
 
@@ -39,6 +39,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteCorrespondenceMutation,
     onSuccess: () => {
+      invalidateCorrespondences();
       toast.success(CORRESPONDENCE_LABELS.delete.success);
       setDeleteOpen(false);
     },

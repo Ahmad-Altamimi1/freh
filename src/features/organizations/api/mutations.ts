@@ -22,10 +22,14 @@ import type { Member, OrganizationMutationPayload, ReportTemplatePayload } from 
  * all have to be refetched, and they hang off that root key by design.
  */
 
+export function invalidateOrganizations() {
+  getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+}
+
 export const createOrganizationMutation = mutationOptions({
   mutationFn: (values: OrganizationMutationPayload) => createOrganization(values),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+    invalidateOrganizations();
   }
 });
 
@@ -33,14 +37,14 @@ export const updateOrganizationMutation = mutationOptions({
   mutationFn: ({ id, values }: { id: string; values: OrganizationMutationPayload }) =>
     updateOrganization(id, values),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+    invalidateOrganizations();
   }
 });
 
 export const deleteOrganizationMutation = mutationOptions({
   mutationFn: (id: string) => deleteOrganization(id),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+    invalidateOrganizations();
   }
 });
 
@@ -48,7 +52,7 @@ export const updateOrganizationMembersMutation = mutationOptions({
   mutationFn: ({ id, members }: { id: string; members: Member[] }) =>
     updateOrganizationMembers(id, members),
   onSuccess: () => {
-    getQueryClient().invalidateQueries({ queryKey: organizationKeys.all });
+    invalidateOrganizations();
   }
 });
 

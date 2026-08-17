@@ -106,6 +106,13 @@
       "when": 1786157334232,
       "tag": "0014_board_renewals_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1786228143000,
+      "tag": "0015_correspondence_type_rename",
+      "breakpoints": true
     }
   ]
 }

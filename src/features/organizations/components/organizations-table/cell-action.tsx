@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { deleteOrganizationMutation } from '../../api/mutations';
+import { deleteOrganizationMutation, invalidateOrganizations } from '../../api/mutations';
 import type { Organization } from '../../api/types';
 import { ORGANIZATION_LABELS } from '../../constants/labels';
 import { OrganizationFormSheet } from '../organization-form-sheet';
@@ -42,6 +42,7 @@ export function CellAction({ data }: CellActionProps) {
   const deleteMutation = useMutation({
     ...deleteOrganizationMutation,
     onSuccess: () => {
+      invalidateOrganizations();
       toast.success(ORGANIZATION_LABELS.delete.success);
       setDeleteOpen(false);
     },

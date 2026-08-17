@@ -21,7 +21,7 @@ import { useBreadcrumbOverride } from '@/hooks/use-breadcrumbs';
 import { usePermissions } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { organizationByIdOptions } from '../api/queries';
-import { deleteOrganizationMutation } from '../api/mutations';
+import { deleteOrganizationMutation, invalidateOrganizations } from '../api/mutations';
 import { formatDateAr, formatNumberAr } from '@/lib/format';
 import { todayUTC } from '../lib/term';
 import { ORGANIZATION_FIELD_LABELS, ORGANIZATION_LABELS } from '../constants/labels';
@@ -91,6 +91,7 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
   const deleteMutation = useMutation({
     ...deleteOrganizationMutation,
     onSuccess: () => {
+      invalidateOrganizations();
       toast.success(ORGANIZATION_LABELS.delete.success);
       router.push('/dashboard/organizations');
     },

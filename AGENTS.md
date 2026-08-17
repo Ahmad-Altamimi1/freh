@@ -574,12 +574,17 @@ Production-ready Dockerfiles are included:
 - `Dockerfile` — Node.js-based
 - `Dockerfile.bun` — Bun-based
 
-Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars as `--build-arg` at build time, and runtime secrets via `-e` at run time.
+Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars as `--build-arg` at build time, and runtime secrets via `-e` at run time. Both runner stages install Chromium and a system Arabic font for the PDF routes and set `PUPPETEER_EXECUTABLE_PATH`.
+
+### On-premises / LAN (self-hosted Supabase)
+
+`deploy/self-host/` holds the full offline story: a trimmed Supabase compose stack, an `app` service behind the `app` compose profile, secret generation, backup/restore, and an Arabic runbook. See [deploy/self-host/README.md](./deploy/self-host/README.md).
 
 ### Build Considerations
 
 - Output: `standalone` (optimized for Docker/self-hosting)
-- Images: see `remotePatterns` in `next.config.ts`
+- Images: see `remotePatterns` in `next.config.ts` — the hosted `*.supabase.co` wildcard plus a pattern derived from `NEXT_PUBLIC_SUPABASE_URL`, which is what lets `next/image` load signed URLs from a self-hosted Supabase on a LAN address
+- `NEXT_PUBLIC_SUPABASE_URL` is inlined into the client bundle, so a self-hosted image is tied to the server address it was built for — changing the address means rebuilding
 - Sentry source maps uploaded automatically in CI
 
 ---
